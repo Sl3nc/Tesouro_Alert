@@ -25,8 +25,6 @@ class Browser:
     LINK = 'https://www.tesourodireto.com.br/titulos/precos-e-taxas.htm'
 
     def __init__(self, hide=True) -> None:
-        self.titulos = ['titulo','ano','rentabilidade_anual','investimento_minimo','preco_unitario', 'vencimento']
-
         self.driver = self.make_chrome_browser()
         if hide == True:
             self.driver.set_window_position(-10000,0)
@@ -65,12 +63,8 @@ class Browser:
         lista_nova = []
         for conteudo in conteudos:
             lista_nova.append(
-                dict(zip(
-                        self.titulos, 
-                        [x.text for x in conteudo if x.text != '']
-                        )
-                    )
-                )
+                (x.text for x in conteudo if x.text != '')
+            )
 
         return lista_nova
     
@@ -112,10 +106,8 @@ class DataBase:
             'INSERT INTO {0} '
             '(Titulo, Ano, Rentabilidade_Anual, Investimento_Minimo, Preco_Unitario, Vencimento)'
             ' VALUES '
-            '(:titulo, :ano, :rentabilidade_anual, :investimento_minimo, :preco_unitario, :vencimento)'
+            '(?,?,?,?,?,?)'
         )
-
-
 
         self.insert_const = (
             f'INSERT INTO {self.TABLE_CONST}'
@@ -142,13 +134,12 @@ class DataBase:
 
         # return filtred_moves
 
-
-    def update(self, move: list[dict]):
+    def update(self, move: list[tuple]):
         self.cursor.executemany(
             self.insert_late.format(
                 self.TABLE_LATE
             ),
-            (x.values for x in x for x in move)
+            (x for x in move)
         )
 
 if __name__ == '__main__':
@@ -156,18 +147,13 @@ if __name__ == '__main__':
         browser = Browser()
         email = Email()
         db = DataBase()
-        content = [
-            {
-                'a': 'b'
-            }
-        ]
+        content = [('a','b')]
 
         # content = browser.search()
         move = db.filter_moveless(content)
 
         # email.create_message(content)
         # email.send()
-        
         
         db.update(content)
     except Exception as err:
