@@ -47,27 +47,17 @@ class Browser:
             service=chrome_service,
             options=chrome_options
         )
-
         return browser
     
-    
-    def search(self) -> list[dict]:
+    def search(self) -> list[tuple]:
         tabela = self.driver.find_element(By.CSS_SELECTOR, self.SELECTOR_TABLE)
-
         linhas = tabela.find_elements(By.TAG_NAME, 'tbody')
 
-        conteudos = [
-            linha.find_elements(By.TAG_NAME, 'span') for linha in linhas
-        ]
+        for linha in linhas:
+            infos = linha.find_elements(By.TAG_NAME, 'span')
+            for data in infos:
+                print(data.text)
 
-        lista_nova = []
-        for conteudo in conteudos:
-            lista_nova.append(
-                (x.text for x in conteudo if x.text != '')
-            )
-
-        return lista_nova
-    
 class Email:
     def __init__(self) -> None:
         self.addresse = ['']
@@ -119,20 +109,21 @@ class DataBase:
         self.cursor = self.connection.cursor()
         pass
 
-    def filter_moveless(self, contents: list[dict]):
+    def filter_moveless(self, contents: list[tuple]):
         self.cursor.execute(
             self.query_late.format(self.TABLE_LATE)
         )
         lates_moves = self.cursor.fetchall()
         print(lates_moves)
-        # filtred_moves = []
-        # for move in lates_moves:
-        #     for content in contents:
-        #         if content['Titulo'] == move['Titulo']\
-        #             and content['rentabilidade_anual'] == move['rentabilidade_anual']:
-        #             filtred_moves.append(content)
 
-        # return filtred_moves
+        filtred_moves = []
+        for move in lates_moves:
+            for content in contents:
+                if content[1] == move[1]\
+                    and content[2] != move[2]:
+                    filtred_moves.append(content)
+
+        return filtred_moves
 
     def update(self, move: list[tuple]):
         self.cursor.executemany(
@@ -147,14 +138,16 @@ if __name__ == '__main__':
         browser = Browser()
         email = Email()
         db = DataBase()
+        
         content = browser.search()
-        print(content)
         
-        move = db.filter_moveless(content)
+        # move = db.filter_moveless(content)
 
-        # email.create_message(content)
-        # email.send()
-        
-        db.update(move)
+        # db.update(content)
+        # if move != []:
+            # email.create_message(content)
+            # email.send()
+            
+            # db.update(move)
     # except Exception as err:
     #     print(err)
