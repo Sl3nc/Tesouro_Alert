@@ -143,18 +143,18 @@ class DataBase:
         )
 
 if __name__ == '__main__':
-    try:
+    # try:
         browser = Browser()
         email = Email()
         db = DataBase()
         content = [('a','b')]
 
-        # content = browser.search()
+        content = browser.search()
         move = db.filter_moveless(content)
 
         # email.create_message(content)
         # email.send()
         
-        db.update(content)
-    except Exception as err:
-        print(err)
+        db.update(move)
+    # except Exception as err:
+    #     print(err)
