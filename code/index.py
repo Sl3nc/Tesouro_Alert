@@ -147,9 +147,9 @@ if __name__ == '__main__':
         browser = Browser()
         email = Email()
         db = DataBase()
-        content = [('a','b')]
-
         content = browser.search()
+        print(content)
+        
         move = db.filter_moveless(content)
 
         # email.create_message(content)
