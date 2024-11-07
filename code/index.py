@@ -53,10 +53,13 @@ class Browser:
         tabela = self.driver.find_element(By.CSS_SELECTOR, self.SELECTOR_TABLE)
         linhas = tabela.find_elements(By.TAG_NAME, 'tbody')
 
+        p = []
         for linha in linhas:
-            infos = linha.find_elements(By.TAG_NAME, 'span')
-            for data in infos:
-                print(data.text)
+            info = linha.find_elements(By.TAG_NAME, 'span')
+            for index, data in enumerate(info):
+                info[index] = data.text
+            p.append((*[data for data in info if data != ''],))
+        return p
 
 class Email:
     def __init__(self) -> None:
@@ -65,8 +68,6 @@ class Email:
         self.passwrd_sender = ''
 
         self.base_html = '''
-
-
 
         '''
         pass
@@ -92,11 +93,10 @@ class DataBase:
             'SELECT * FROM {0}'
         )
 
-        self.insert_late = (
-            'INSERT INTO {0} '
-            '(Titulo, Ano, Rentabilidade_Anual, Investimento_Minimo, Preco_Unitario, Vencimento)'
-            ' VALUES '
-            '(?,?,?,?,?,?)'
+        self.update_late = (
+            'UPDATE {0} SET '
+            'Titulo = ?, Ano = ?, Rentabilidade_Anual = ?, Investimento_Minimo = ?, Preco_Unitario = ?, Vencimento = ? '
+            'WHERE id_late = ?; '
         )
 
         self.insert_const = (
@@ -118,20 +118,24 @@ class DataBase:
 
         filtred_moves = []
         for move in lates_moves:
+            print(f'{move} - movimento db')
             for content in contents:
-                if content[1] == move[1]\
-                    and content[2] != move[2]:
-                    filtred_moves.append(content)
-
+                print(f'{content} - opção do site')
+                if content[0] == move[1]\
+                    and content[3] != move[4]:
+                    filtred_moves.append((move[0],) + content)
+        print(f'{filtred_moves} - resultado final')
         return filtred_moves
 
     def update(self, move: list[tuple]):
-        self.cursor.executemany(
-            self.insert_late.format(
-                self.TABLE_LATE
-            ),
-            (x for x in move)
-        )
+        for item in move:
+            self.cursor.execute(
+                self.update_late.format(
+                    self.TABLE_LATE,
+                ),
+                (item[1], item[2], item[3], item[4], item[5], item[6], item[0])
+            )
+            self.connection.commit()
 
 if __name__ == '__main__':
     # try:
@@ -140,14 +144,13 @@ if __name__ == '__main__':
         db = DataBase()
         
         content = browser.search()
-        
-        # move = db.filter_moveless(content)
 
-        # db.update(content)
-        # if move != []:
-            # email.create_message(content)
-            # email.send()
+        move = db.filter_moveless(content)
+
+        if move != []:
+            email.create_message(content)
+            email.send()
             
-            # db.update(move)
+            db.update(move)
     # except Exception as err:
     #     print(err)
