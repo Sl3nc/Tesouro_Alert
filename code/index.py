@@ -1,4 +1,3 @@
-from pathlib import Path
 from time import sleep
 from abc import abstractmethod
 from selenium import webdriver
@@ -10,6 +9,16 @@ from selenium.webdriver.support import expected_conditions as ec
 import sqlite3
 import sys
 import os
+
+import json
+from datetime import datetime
+import smtplib
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+from string import Template
+from pathlib import Path
+from dotenv import load_dotenv
+load_dotenv(Path(__file__).parent / 'src' / 'env' / '.env')
 
 def resource_path(relative_path):
     base_path = getattr(
@@ -60,23 +69,50 @@ class Browser:
                 info[index] = data.text
             p.append((*[data for data in info if data != ''],))
         return p
+    
+    def close(self):
+        self.driver.quit()
 
 class Email:
+    PATH_MESSAGE = Path(__file__).parent / 'src' / 'base_message.html'
+
     def __init__(self) -> None:
-        self.addresse = ['']
-        self.email_sender = ''
-        self.passwrd_sender = ''
-
-        self.base_html = '''
-
-        '''
+        self.smtp_server = 'smtp.google.com'
+        self.smtp_port = 587
+        self.smtp_username = os.getenv("EMAIL_SENDER","")
+        self.smtp_password = os.getenv("PASSWRD_SENDER","")
         pass
 
-    def create_message(self, list):
-        ...
+    def create_message(self, data: list[tuple]) -> str:
+        format_data = []
+        for item in data:
+            format_data.append(' - '.join(item))
 
-    def send(self):
-        ...
+        with open (self.PATH_MESSAGE, 'r') as file:
+            text_message = file.read()
+            return Template(text_message)\
+                .substitute(infos = format_data)
+
+    def send(self, texto_email: str, to: str) -> bool:
+        mime_multipart = MIMEMultipart()
+        mime_multipart['from'] = self.smtp_username
+        mime_multipart['to'] = to
+        mime_multipart['subject'] = f'Atualização Tesouro Direto {datetime.strftime(datetime.now(), '%d/%m - %H:%M')}'
+
+        corpo_email = MIMEText(texto_email, 'html', 'utf-8')
+        mime_multipart.attach(corpo_email)
+
+        self._open_server(mime_multipart)
+        return True
+
+    def _open_server(self, mime_multipart) -> None:
+        with smtplib.SMTP(self.smtp_server, self.smtp_port) as server:
+            server.starttls()
+            print('oi')
+            server.login(self.smtp_username, self.smtp_password)
+            server.send_message(mime_multipart)
+        
+        print('Email enviado com sucesso')
 
 class DataBase:
     NOME_DB = 'tesouro_db.sqlite3'
@@ -114,17 +150,16 @@ class DataBase:
             self.query_late.format(self.TABLE_LATE)
         )
         lates_moves = self.cursor.fetchall()
-        print(lates_moves)
 
         filtred_moves = []
         for move in lates_moves:
-            print(f'{move} - movimento db')
+            # print(f'{move} - movimento db')
             for content in contents:
-                print(f'{content} - opção do site')
+                # print(f'{content} - opção do site')
                 if content[0] == move[1]\
                     and content[3] != move[4]:
-                    filtred_moves.append((move[0],) + content)
-        print(f'{filtred_moves} - resultado final')
+                    filtred_moves.append((str(move[0]),) + content)
+        # print(f'{filtred_moves} - resultado final')
         return filtred_moves
 
     def update(self, move: list[tuple]):
@@ -137,20 +172,32 @@ class DataBase:
             )
             self.connection.commit()
 
+    def exit(self):
+        self.cursor.close()
+        self.connection.close()
+
 if __name__ == '__main__':
-    # try:
+    try:
         browser = Browser()
         email = Email()
         db = DataBase()
         
         content = browser.search()
+        browser.close()
+
 
         move = db.filter_moveless(content)
 
         if move != []:
-            email.create_message(content)
-            email.send()
+            message = email.create_message(move)
+            for person in json.loads(os.environ['ADDRESSE']):
+              print(person)
+              email.send(message, person)
             
-            db.update(move)
+            # db.update(move)
+        db.exit()
     # except Exception as err:
-    #     print(err)
+    finally:
+        db.exit()
+        browser.close()
+
