@@ -77,16 +77,18 @@ class Email:
     PATH_MESSAGE = Path(__file__).parent / 'src' / 'base_message.html'
 
     def __init__(self) -> None:
-        self.smtp_server = 'smtp.google.com'
-        self.smtp_port = 587
+        self.smtp_server = os.getenv("SMTP_SERVER","")
+        self.smtp_port = os.getenv("SMTP_PORT", 0)
+
         self.smtp_username = os.getenv("EMAIL_SENDER","")
         self.smtp_password = os.getenv("PASSWRD_SENDER","")
         pass
 
-    def create_message(self, data: list[tuple]) -> str:
+    def create_message(self, move: list[tuple]) -> str:
         format_data = []
-        for item in data:
-            format_data.append(' - '.join(item))
+        for item in move:
+            item_str = ''.join([f'<td> {data} </td>' for data in item[1:]])
+            format_data.append('<tr> ' + item_str + ' </tr>')
 
         with open (self.PATH_MESSAGE, 'r') as file:
             text_message = file.read()
@@ -95,25 +97,23 @@ class Email:
 
     def send(self, texto_email: str, to: str) -> bool:
         mime_multipart = MIMEMultipart()
-        mime_multipart['from'] = self.smtp_username
-        mime_multipart['to'] = to
-        mime_multipart['subject'] = f'Atualização Tesouro Direto {datetime.strftime(datetime.now(), '%d/%m - %H:%M')}'
+        mime_multipart['From'] = self.smtp_username
+        mime_multipart['To'] = to
+        mime_multipart['Subject'] = f'Atualização Tesouro Direto {datetime.strftime(datetime.now(), '%d/%m - %H:%M')}'
 
-        corpo_email = MIMEText(texto_email, 'html', 'utf-8')
-        mime_multipart.attach(corpo_email)
+        mime_multipart.attach(MIMEText(texto_email, 'html', 'utf-8'))
 
         self._open_server(mime_multipart)
+
+        print('Email enviado com sucesso')
         return True
 
-    def _open_server(self, mime_multipart) -> None:
+    def _open_server(self, mime_multipart: MIMEMultipart) -> None:
         with smtplib.SMTP(self.smtp_server, self.smtp_port) as server:
             server.starttls()
-            print('oi')
             server.login(self.smtp_username, self.smtp_password)
             server.send_message(mime_multipart)
         
-        print('Email enviado com sucesso')
-
 class DataBase:
     NOME_DB = 'tesouro_db.sqlite3'
     FOLDER_DB = resource_path(f'src\\db\\{NOME_DB}')
@@ -121,6 +121,7 @@ class DataBase:
     TABLE_CONST = 'Infos_Const'
 
     def __init__(self) -> None:
+        
         self.query_columns = (
             'PRAGMA table_info({0});'
         )
@@ -177,7 +178,7 @@ class DataBase:
         self.connection.close()
 
 if __name__ == '__main__':
-    try:
+    # try:
         browser = Browser()
         email = Email()
         db = DataBase()
@@ -191,13 +192,11 @@ if __name__ == '__main__':
         if move != []:
             message = email.create_message(move)
             for person in json.loads(os.environ['ADDRESSE']):
-              print(person)
               email.send(message, person)
             
             # db.update(move)
-        db.exit()
+        # db.exit()
     # except Exception as err:
-    finally:
-        db.exit()
-        browser.close()
+    # finally:
+        # db.exit()
 
