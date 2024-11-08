@@ -179,19 +179,19 @@ class DataBase:
             for content in contents:
                 # print(f'{content} - opção do site')
                 if content[0] == move[1]\
-                    and content[3] != move[4]:
+                    and content[2] != move[3]:
                     filtred_moves.append(
-                        (str(move[0]),) + content[0:3] + (self.variacao(move[3], content[2]),) + content[3:]
+                        (str(move[0]),) + (re.sub(r"\d", "", content[0]) ,) + content[1:3] + (self.variacao(content[2], move[3]),) + content[3:]
                     )
         # print(f'{filtred_moves} - resultado final')
         return filtred_moves
     
-    def variacao(self, old_value: str, new_value: str):
+    def variacao(self, new_value: str, old_value: str, ):
         values = []
-        for value in [old_value, new_value]:
-            values.append(float(re.sub(r"[A-Z !+%]", "", value.replace(',','.'), 0, re.IGNORECASE)))
+        for data in [old_value, new_value]:
+            values.append(float(re.sub(r"[A-Z !+%]", "", data.replace(',','.'), 0, re.IGNORECASE)))
 
-        result = values[0] / values[1] - values[0]
+        result = ((values[1] - values[0]) / values[0]) * 100
 
         return f'{result:,.2f}% {'▲' if result > 0 else '▽'}'.replace('.',',') 
 
@@ -201,7 +201,7 @@ class DataBase:
                 self.update_late.format(
                     self.TABLE_LATE,
                 ),
-                (item[1], item[2], item[3], item[4], item[5], item[6], item[0])
+                (item[1], item[2], item[3], item[5], item[6], item[7], item[0])
             )
             self.connection.commit()
 
@@ -225,9 +225,8 @@ if __name__ == '__main__':
             message = email.create_message(move)
             for person in json.loads(os.environ['ADDRESSE']):
                 email.send(message, person)
-                print('Email enviado com sucesso')
+                print('Email enviado com sucesso para: ' + person)
             db.update(move)
-        db.exit()
     # except Exception as err:
     finally:
         db.exit()
