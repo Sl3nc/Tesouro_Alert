@@ -2,3 +2,4 @@
 code/src/drivers
 *.autosave
 *~
+*.env
