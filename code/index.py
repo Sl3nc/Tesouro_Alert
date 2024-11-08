@@ -10,6 +10,7 @@ import sqlite3
 import sys
 import os
 
+import re
 import json
 from datetime import datetime
 import smtplib
@@ -67,7 +68,9 @@ class Browser:
             info = linha.find_elements(By.TAG_NAME, 'span')
             for index, data in enumerate(info):
                 info[index] = data.text
-            p.append((*[data for data in info if data != ''],))
+            p.append((*[data for data in info if data != ''\
+                and data[:3] != 'com' \
+                    and data[:3] != 'apo'],))
         return p
     
     def close(self):
@@ -101,7 +104,7 @@ class Email:
             return Template(text_message)\
                 .substitute(infos =  ''.join(x for x in format_data))
 
-    def send(self, texto_email: str, to: str) -> bool:
+    def send(self, texto_email: str, to: str) -> None:
         mime_multipart = MIMEMultipart()
         mime_multipart['From'] = self.smtp_username
         mime_multipart['To'] = to
@@ -110,9 +113,6 @@ class Email:
         mime_multipart.attach(MIMEText(texto_email, 'html', 'utf-8'))
 
         self._open_server(mime_multipart)
-
-        print('Email enviado com sucesso')
-        return True
 
     def _open_server(self, mime_multipart: MIMEMultipart) -> None:
         with smtplib.SMTP(self.smtp_server, self.smtp_port) as server:
@@ -124,7 +124,7 @@ class DataBase:
     NOME_DB = 'tesouro_db.sqlite3'
     FOLDER_DB = resource_path(f'src\\db\\{NOME_DB}')
     TABLE_LATE = 'Infos_Late'
-    TABLE_CONST = 'Infos_Const'
+    TABLE_OLD = 'Infos_Const'
 
     def __init__(self) -> None:
         
@@ -133,24 +133,39 @@ class DataBase:
         )
 
         self.query_late = (
-            'SELECT * FROM {0}'
+            f'SELECT * FROM {self.TABLE_LATE}'
         )
 
         self.update_late = (
-            'UPDATE {0} SET '
+            f'UPDATE {self.TABLE_LATE} SET '
             'Titulo = ?, Ano = ?, Rentabilidade_Anual = ?, Investimento_Minimo = ?, Preco_Unitario = ?, Vencimento = ? '
             'WHERE id_late = ?; '
         )
 
-        self.insert_const = (
-            f'INSERT INTO {self.TABLE_CONST}'
-            '* VALUES '
-            '(:titulo, :rentabilidade_anual)'
+        self.insert_late = (
+            f'INSERT INTO {self.TABLE_LATE} '
+            '(Titulo, Ano, Rentabilidade_Anual, Investimento_Minimo, Preco_Unitario, Vencimento)'
+            ' VALUES '
+            '(?,?,?,?,?,?)'
+        )
+
+        self.insert_old = (
+            f'INSERT INTO {self.TABLE_OLD}'
+            ' (Título, Rentabilidade Anual) VALUES '
+            '(?, ?)'
         )
 
         self.connection = sqlite3.connect(self.FOLDER_DB)
         self.cursor = self.connection.cursor()
         pass
+
+    def init(self, contents: list[tuple]):
+        for item in contents:
+            self.cursor.execute(
+                self.insert_late,
+                (item[0], item[1], item[2], item[3], item[4], item[5])
+            )
+        self.connection.commit()
 
     def filter_moveless(self, contents: list[tuple]):
         self.cursor.execute(
@@ -164,10 +179,21 @@ class DataBase:
             for content in contents:
                 # print(f'{content} - opção do site')
                 if content[0] == move[1]\
-                    and content[3] != move[4]:
-                    filtred_moves.append((str(move[0]),) + content)
+                    and content[2] != move[3]:
+                    filtred_moves.append(
+                        (str(move[0]),) + (re.sub(r"\d", "", content[0]) ,) + content[1:3] + (self.variacao(content[2], move[3]),) + content[3:]
+                    )
         # print(f'{filtred_moves} - resultado final')
         return filtred_moves
+    
+    def variacao(self, new_value: str, old_value: str, ):
+        values = []
+        for data in [old_value, new_value]:
+            values.append(float(re.sub(r"[A-Z !+%]", "", data.replace(',','.'), 0, re.IGNORECASE)))
+
+        result = ((values[1] - values[0]) / values[0]) * 100
+
+        return f'{result:,.2f}% {'▲' if result > 0 else '▽'}'.replace('.',',') 
 
     def update(self, move: list[tuple]):
         for item in move:
@@ -175,7 +201,7 @@ class DataBase:
                 self.update_late.format(
                     self.TABLE_LATE,
                 ),
-                (item[1], item[2], item[3], item[4], item[5], item[6], item[0])
+                (item[1], item[2], item[3], item[5], item[6], item[7], item[0])
             )
             self.connection.commit()
 
@@ -184,25 +210,24 @@ class DataBase:
         self.connection.close()
 
 if __name__ == '__main__':
-    # try:
+    try:
         browser = Browser()
         email = Email()
         db = DataBase()
         
         content = browser.search()
         browser.close()
-
+        # db.init(content)
 
         move = db.filter_moveless(content)
 
         if move != []:
             message = email.create_message(move)
             for person in json.loads(os.environ['ADDRESSE']):
-              email.send(message, person)
-            
-            # db.update(move)
-        # db.exit()
+                email.send(message, person)
+                print('Email enviado com sucesso para: ' + person)
+            db.update(move)
     # except Exception as err:
-    # finally:
-        # db.exit()
+    finally:
+        db.exit()
 
