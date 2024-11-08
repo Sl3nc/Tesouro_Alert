@@ -68,7 +68,9 @@ class Browser:
             info = linha.find_elements(By.TAG_NAME, 'span')
             for index, data in enumerate(info):
                 info[index] = data.text
-            p.append((*[data for data in info if data != ''],))
+            p.append((*[data for data in info if data != ''\
+                and data[:3] != 'com' \
+                    and data[:3] != 'apo'],))
         return p
     
     def close(self):
@@ -102,7 +104,7 @@ class Email:
             return Template(text_message)\
                 .substitute(infos =  ''.join(x for x in format_data))
 
-    def send(self, texto_email: str, to: str) -> bool:
+    def send(self, texto_email: str, to: str) -> None:
         mime_multipart = MIMEMultipart()
         mime_multipart['From'] = self.smtp_username
         mime_multipart['To'] = to
@@ -111,9 +113,6 @@ class Email:
         mime_multipart.attach(MIMEText(texto_email, 'html', 'utf-8'))
 
         self._open_server(mime_multipart)
-
-        print('Email enviado com sucesso')
-        return True
 
     def _open_server(self, mime_multipart: MIMEMultipart) -> None:
         with smtplib.SMTP(self.smtp_server, self.smtp_port) as server:
@@ -134,13 +133,20 @@ class DataBase:
         )
 
         self.query_late = (
-            'SELECT * FROM {0}'
+            f'SELECT * FROM {self.TABLE_LATE}'
         )
 
         self.update_late = (
-            'UPDATE {0} SET '
+            f'UPDATE {self.TABLE_LATE} SET '
             'Titulo = ?, Ano = ?, Rentabilidade_Anual = ?, Investimento_Minimo = ?, Preco_Unitario = ?, Vencimento = ? '
             'WHERE id_late = ?; '
+        )
+
+        self.insert_late = (
+            f'INSERT INTO {self.TABLE_LATE} '
+            '(Titulo, Ano, Rentabilidade_Anual, Investimento_Minimo, Preco_Unitario, Vencimento)'
+            ' VALUES '
+            '(?,?,?,?,?,?)'
         )
 
         self.insert_old = (
@@ -152,6 +158,14 @@ class DataBase:
         self.connection = sqlite3.connect(self.FOLDER_DB)
         self.cursor = self.connection.cursor()
         pass
+
+    def init(self, contents: list[tuple]):
+        for item in contents:
+            self.cursor.execute(
+                self.insert_late,
+                (item[0], item[1], item[2], item[3], item[4], item[5])
+            )
+        self.connection.commit()
 
     def filter_moveless(self, contents: list[tuple]):
         self.cursor.execute(
@@ -203,16 +217,17 @@ if __name__ == '__main__':
         
         content = browser.search()
         browser.close()
+        # db.init(content)
 
         move = db.filter_moveless(content)
 
         if move != []:
             message = email.create_message(move)
             for person in json.loads(os.environ['ADDRESSE']):
-              email.send(message, person)
-            
-        #     db.update(content)
-        # db.exit()
+                email.send(message, person)
+                print('Email enviado com sucesso')
+            db.update(move)
+        db.exit()
     # except Exception as err:
     finally:
         db.exit()
