@@ -86,14 +86,20 @@ class Email:
 
     def create_message(self, move: list[tuple]) -> str:
         format_data = []
-        for item in move:
-            item_str = ''.join([f'<td> {data} </td>' for data in item[1:]])
-            format_data.append('<tr> ' + item_str + ' </tr>')
+        for index, item in enumerate(move, 1):
+            item_str = ''.join(
+                [f'<td> {data} </td>' for data in item[1:]]
+            )
 
-        with open (self.PATH_MESSAGE, 'r') as file:
+            color = 'lightyellow' if index % 2 == 0 else 'lightblue'
+            format_data.append(
+                 f'<tr style="background-color: {color};"> {item_str} </tr>'
+            )
+
+        with open (self.PATH_MESSAGE, 'r', encoding='utf-8') as file:
             text_message = file.read()
             return Template(text_message)\
-                .substitute(infos = format_data)
+                .substitute(infos =  ''.join(x for x in format_data))
 
     def send(self, texto_email: str, to: str) -> bool:
         mime_multipart = MIMEMultipart()
