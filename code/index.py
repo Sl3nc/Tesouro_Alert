@@ -10,6 +10,7 @@ import sqlite3
 import sys
 import os
 
+import re
 import json
 from datetime import datetime
 import smtplib
@@ -124,7 +125,7 @@ class DataBase:
     NOME_DB = 'tesouro_db.sqlite3'
     FOLDER_DB = resource_path(f'src\\db\\{NOME_DB}')
     TABLE_LATE = 'Infos_Late'
-    TABLE_CONST = 'Infos_Const'
+    TABLE_OLD = 'Infos_Const'
 
     def __init__(self) -> None:
         
@@ -142,10 +143,10 @@ class DataBase:
             'WHERE id_late = ?; '
         )
 
-        self.insert_const = (
-            f'INSERT INTO {self.TABLE_CONST}'
-            '* VALUES '
-            '(:titulo, :rentabilidade_anual)'
+        self.insert_old = (
+            f'INSERT INTO {self.TABLE_OLD}'
+            ' (Título, Rentabilidade Anual) VALUES '
+            '(?, ?)'
         )
 
         self.connection = sqlite3.connect(self.FOLDER_DB)
@@ -165,9 +166,20 @@ class DataBase:
                 # print(f'{content} - opção do site')
                 if content[0] == move[1]\
                     and content[3] != move[4]:
-                    filtred_moves.append((str(move[0]),) + content)
+                    filtred_moves.append(
+                        (str(move[0]),) + content[0:3] + (self.variacao(move[3], content[2]),) + content[3:]
+                    )
         # print(f'{filtred_moves} - resultado final')
         return filtred_moves
+    
+    def variacao(self, old_value: str, new_value: str):
+        values = []
+        for value in [old_value, new_value]:
+            values.append(float(re.sub(r"[A-Z !+%]", "", value.replace(',','.'), 0, re.IGNORECASE)))
+
+        result = values[0] / values[1] - values[0]
+
+        return f'{result:,.2f}% {'▲' if result > 0 else '▽'}'.replace('.',',') 
 
     def update(self, move: list[tuple]):
         for item in move:
@@ -184,14 +196,13 @@ class DataBase:
         self.connection.close()
 
 if __name__ == '__main__':
-    # try:
+    try:
         browser = Browser()
         email = Email()
         db = DataBase()
         
         content = browser.search()
         browser.close()
-
 
         move = db.filter_moveless(content)
 
@@ -200,9 +211,9 @@ if __name__ == '__main__':
             for person in json.loads(os.environ['ADDRESSE']):
               email.send(message, person)
             
-            # db.update(move)
+        #     db.update(content)
         # db.exit()
     # except Exception as err:
-    # finally:
-        # db.exit()
+    finally:
+        db.exit()
 
