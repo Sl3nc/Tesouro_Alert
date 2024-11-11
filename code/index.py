@@ -217,7 +217,6 @@ if __name__ == '__main__':
         
         content = browser.search()
         browser.close()
-        # db.init(content)
 
         move = db.filter_moveless(content)
 
