@@ -216,11 +216,13 @@ class Report:
         self.path = resource_path('report.txt')
         pass
 
-    def is_send(self, to: str):
+    def is_send(self, to: list[str]):
         with open(self.path, 'a', encoding= 'utf-8') as file:
             file.write('\n')
-            file.write('-'*20 + f'Email enviado às {datetime.strftime(datetime.now())} para:\n')
-            file.write(to)
+            file.write('-'*20 + 'Email enviado às' + datetime.strftime(datetime.now()) + 'para:\n')
+            for person in to:
+                file.write(person)
+            file.write('\n')
 
     def is_new(self, unfound: list[tuple]):
         with open(self.path, 'a', encoding= 'utf-8') as file:
@@ -228,12 +230,14 @@ class Report:
             file.write('\n#'*10 + 'Linhas Adcionadas:\n')
             for row in unfound:
                 file.write(row[1])
+            file.write('\n')
 
     def is_updated(self, outdated: list[tuple]):
         with open(self.path, 'a', encoding= 'utf-8') as file:
             file.write('#'*10 + 'Linhas Atualizadas:\n')
             for row in outdated:
                 file.write(row[1])
+            file.write('\n')
 
 class Main:
     def __init__(self) -> None:
@@ -252,9 +256,10 @@ class Main:
 
             if moves != []:
                 message = self.email.create_message(moves)
-                for person in json.loads(os.environ['ADDRESSE']):
+                to = json.loads(os.environ['ADDRESSE'])
+                for person in to:
                     self.email.send(message, person)
-                    self.report.is_send(person)
+                self.report.is_send(to)
         finally:
             self.db.exit()
 
