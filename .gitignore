@@ -3,3 +3,7 @@ code/src/drivers
 *.autosave
 *~
 *.env
+/build
+/dist
+*.spec
+*.sqlite3

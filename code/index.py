@@ -9,7 +9,7 @@ from selenium.webdriver.support import expected_conditions as ec
 import sqlite3
 import sys
 import os
-
+import traceback
 import re
 import json
 from datetime import datetime
@@ -76,7 +76,7 @@ class Browser:
         return p
     
 class Email:
-    PATH_MESSAGE = Path(__file__).parent / 'src' / 'base_message.html'
+    PATH_MESSAGE = Path(__file__).parent / 'src' / 'doc' / 'base_message.html'
 
     def __init__(self) -> None:
         self.smtp_server = os.getenv("SMTP_SERVER","")
@@ -116,7 +116,6 @@ class Email:
                 .substitute(infos =  ''.join(x for x in format_data))
         
     def get_color(self, name_row):
-        print(name_row)
         for key, color in self.ref_cor.items():
             if key in name_row:
                 return color
@@ -213,14 +212,13 @@ class DataBase:
 
 class Report:
     def __init__(self) -> None:
-        self.path = resource_path('relatório_emails.txt')
+        self.path = resource_path('src\\doc\\relatório_emails.txt')
         pass
 
     def is_send(self, to: list[str]):
         with open(self.path, 'a', encoding= 'utf-8') as file:
-            file.write('\n')
-            file.write(
-                '#'*10 + ' Email enviado às' + datetime.strftime(datetime.now(), '%d/%m - %H:%M') + '#'*10 + '\n'
+            file.write('\n' + '#'*10 + '\n')
+            file.write('Email enviado às ' + datetime.strftime(datetime.now(), '%d/%m - %H:%M') + '\n'
             )
             for person in to:
                 file.write(person)
@@ -228,15 +226,16 @@ class Report:
 
     def is_new(self, unfound: list[tuple]):
         with open(self.path, 'a', encoding= 'utf-8') as file:
-            file.write('\n')
-            file.write('\n#'*10 + 'Linhas Adcionadas:\n')
+            file.write('\n' + '#'*10 + '\n')
+            file.write('Linhas Adcionadas:\n')
             for row in unfound:
                 file.write(row[1])
             file.write('\n')
 
     def is_updated(self, outdated: list[tuple]):
         with open(self.path, 'a', encoding= 'utf-8') as file:
-            file.write('#'*10 + 'Linhas Atualizadas:\n')
+            file.write('\n' + '#'*10 + '\n')
+            file.write('Linhas Atualizadas:\n')
             for row in outdated:
                 file.write(row[1])
             file.write('\n')
@@ -265,6 +264,9 @@ class Main:
                 for person in to:
                     self.email.send(message, person)
                 self.report.is_send(to)
+        except Exception:
+            traceback.print_exc()
+            sleep(10)
         finally:
             self.db.exit()
 
