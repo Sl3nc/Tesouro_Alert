@@ -3,3 +3,7 @@ code/src/drivers
 *.autosave
 *~
 *.env
+/dist
+/build
+*.spec
+code/src/db
