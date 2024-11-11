@@ -116,11 +116,11 @@ class Email:
                 .substitute(infos =  ''.join(x for x in format_data))
         
     def get_color(self, name_row):
+        print(name_row)
         for key, color in self.ref_cor.items():
-            if name_row == key:
+            if key in name_row:
                 return color
         return 'white'
-
 
     def send(self, texto_email: str, to: str) -> None:
         mime_multipart = MIMEMultipart()
@@ -213,13 +213,15 @@ class DataBase:
 
 class Report:
     def __init__(self) -> None:
-        self.path = resource_path('report.txt')
+        self.path = resource_path('relatório_emails.txt')
         pass
 
     def is_send(self, to: list[str]):
         with open(self.path, 'a', encoding= 'utf-8') as file:
             file.write('\n')
-            file.write('-'*20 + 'Email enviado às' + datetime.strftime(datetime.now()) + 'para:\n')
+            file.write(
+                '#'*10 + ' Email enviado às' + datetime.strftime(datetime.now(), '%d/%m - %H:%M') + '#'*10 + '\n'
+            )
             for person in to:
                 file.write(person)
             file.write('\n')
@@ -244,6 +246,9 @@ class Main:
         self.email = Email()
         self.db = DataBase()
         self.report = Report()
+
+        self.sign_up = '▲'
+        self.sign_down = '▽'
         pass
 
     def hard_work(self):
@@ -300,7 +305,9 @@ class Main:
 
         result = ((values[1] - values[0]) / values[0]) * 100
 
-        return f'{result:,.2f}% {'▲' if result > 0 else '▽'}'.replace('.',',') 
+        return f'{
+            result:,.2f}% {self.sign_up if result > 0 else self.sign_down
+                }'.replace('.',',') 
     
     def init_db(self):
         self.db.init(Browser().search())
