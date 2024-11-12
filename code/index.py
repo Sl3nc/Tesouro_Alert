@@ -91,7 +91,7 @@ class Email:
         self.ref_cor = {
             'IPCA': 'lightyellow',
             'RENDA': 'lightblue',
-            'EDUCA': 'lightgreen',
+            'EDUCA': 'lightpink',
             'PREFIXADO': 'lightcyan',
             'SELIC': 'lightcoral'
         }
@@ -233,7 +233,7 @@ class Report:
             file.write('Email enviado às ' + datetime.strftime(datetime.now(), '%d/%m - %H:%M') + '\n'
             )
             for person in to:
-                file.write(person)
+                file.write(f'- {person} \n')
             file.write('\n')
 
     def is_new(self, unfound: list[tuple]):
