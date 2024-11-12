@@ -85,10 +85,13 @@ class Email:
         self.smtp_username = os.getenv("EMAIL_SENDER","")
         self.smtp_password = os.getenv("PASSWRD_SENDER","")
 
+        self.sign_up = '▲'
+        self.sign_down = '▼'
+
         self.ref_cor = {
             'IPCA': 'lightyellow',
             'RENDA': 'lightblue',
-            'EDUCA': 'lightgreen',
+            'EDUCA': 'lightpink',
             'PREFIXADO': 'lightcyan',
             'SELIC': 'lightcoral'
         }
@@ -97,9 +100,7 @@ class Email:
     def create_message(self, move: list[tuple]) -> str:
         format_data = []
         for item in move:
-            y = list(item)
-            y[1] = re.sub(r"\d", "", item[1])
-            item = tuple(y)
+            item = self.update_values(item)
 
             item_str = ''.join(
                 [f'<td> {data} </td>' for data in item[1:]]
@@ -114,6 +115,17 @@ class Email:
             text_message = file.read()
             return Template(text_message)\
                 .substitute(infos =  ''.join(x for x in format_data))
+
+    def update_values(self, item):
+        y = list(item)
+
+        color_font = 'green' if float(y[4]) > 0 else 'red'
+        signal = f'% {self.sign_up if float(y[4]) > 0 else self.sign_down}'
+
+        y[4] = f'<span style="color:{color_font}";> {y[4].replace('.',',')} {signal} </span>'
+        
+        y[1] = re.sub(r"\d", "", item[1])
+        return tuple(y)
         
     def get_color(self, name_row):
         for key, color in self.ref_cor.items():
@@ -221,7 +233,7 @@ class Report:
             file.write('Email enviado às ' + datetime.strftime(datetime.now(), '%d/%m - %H:%M') + '\n'
             )
             for person in to:
-                file.write(person)
+                file.write(f'- {person} \n')
             file.write('\n')
 
     def is_new(self, unfound: list[tuple]):
@@ -245,9 +257,6 @@ class Main:
         self.email = Email()
         self.db = DataBase()
         self.report = Report()
-
-        self.sign_up = '▲'
-        self.sign_down = '▽'
         pass
 
     def hard_work(self):
@@ -307,9 +316,7 @@ class Main:
 
         result = ((values[1] - values[0]) / values[0]) * 100
 
-        return f'{
-            result:,.2f}% {self.sign_up if result > 0 else self.sign_down
-                }'.replace('.',',') 
+        return f'{result:,.2f}'
     
     def init_db(self):
         self.db.init(Browser().search())
