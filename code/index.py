@@ -119,7 +119,7 @@ class Email:
     def update_values(self, item):
         y = list(item)
 
-        color_font = 'green' if float(y[4]) > 0 else 'red'
+        color_font = 'green' if float(y[4].replace('.','').replace(',','.')) > 0 else 'red'
         signal = f'% {self.sign_up if float(y[4]) > 0 else self.sign_down}'
 
         y[4] = f'<span style="color:{color_font}";> {y[4].replace('.',',')} {signal} </span>'
@@ -227,6 +227,12 @@ class Report:
         self.path = resource_path('src\\doc\\relatório_emails.txt')
         pass
 
+    def is_error(self, message):
+        with open(self.path, 'a', encoding= 'utf-8') as file:
+            file.write('\n' + '#'*10 + '\n')
+            file.write(f'Erro ocorrido: {message}')
+            file.write('\n')
+
     def is_send(self, to: list[str]):
         with open(self.path, 'a', encoding= 'utf-8') as file:
             file.write('\n' + '#'*10 + '\n')
@@ -273,9 +279,9 @@ class Main:
                 for person in to:
                     self.email.send(message, person)
                 self.report.is_send(to)
-        except Exception:
+        except Exception as err:
             traceback.print_exc()
-            sleep(10)
+            self.report.is_error(err)
         finally:
             self.db.exit()
 
