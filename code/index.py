@@ -10,7 +10,7 @@ import sqlite3
 import sys
 import os
 import traceback
-import re
+from re import sub, I
 import json
 from datetime import datetime
 import smtplib
@@ -31,13 +31,13 @@ def resource_path(relative_path):
 class Browser:
     ROOT_FOLDER = Path(__file__).parent
     CHROME_DRIVER_PATH = ROOT_FOLDER / 'src' / 'drivers' / 'chromedriver.exe'
-    SELECTOR_TABLE = '#td-precos_taxas-tab_1 > div > div.td-mercado-titulos__content > table'
+    SELECTOR_TABLE = '#td-precos_taxas-tab_{0} > div > div.td-mercado-titulos__content > table'
     LINK = 'https://www.tesourodireto.com.br/titulos/precos-e-taxas.htm'
 
     def __init__(self, hide=True) -> None:
         self.driver = self.make_chrome_browser()
-        if hide == True:
-            self.driver.set_window_position(-10000,0)
+        # if hide == True:
+        #     self.driver.set_window_position(-10000,0)
         self.driver.get(self.LINK)
         pass
 
@@ -60,17 +60,20 @@ class Browser:
         return browser
     
     def search(self) -> list[tuple]:
-        tabela = self.driver.find_element(By.CSS_SELECTOR, self.SELECTOR_TABLE)
-        linhas = tabela.find_elements(By.TAG_NAME, 'tbody')
-
         p = []
-        for linha in linhas:
-            info = linha.find_elements(By.TAG_NAME, 'span')
-            for index, data in enumerate(info):
-                info[index] = data.text
-            p.append((*[data for data in info if data != ''\
-                and data[:3] != 'com' \
-                    and data[:3] != 'apo'],))
+        for i in range(1, 3):
+            tabela = self.driver.find_element(By.CSS_SELECTOR, self.SELECTOR_TABLE.format(i))
+            linhas = tabela.find_elements(By.TAG_NAME, 'tbody')
+
+            for linha in linhas:
+                info = linha.find_elements(By.TAG_NAME, 'span')
+                for index, data in enumerate(info):
+                    info[index] = data.text
+                if len(info) == 4:
+                    info.insert(3, '--')
+                p.append((*[data for data in info if data != ''\
+                    and data[:3] != 'com' \
+                        and data[:3] != 'apo'],))
             
         self.driver.quit()
         return p
@@ -118,13 +121,14 @@ class Email:
 
     def update_values(self, item):
         y = list(item)
+        value = sub(r'[a-z \$]','', y[4].replace('.','').replace(',','.'), flags= I)
 
-        color_font = 'green' if float(y[4].replace('.','').replace(',','.')) > 0 else 'red'
+        color_font = 'green' if float(value) > 0 else 'red'
         signal = f'% {self.sign_up if float(y[4]) > 0 else self.sign_down}'
 
-        y[4] = f'<span style="color:{color_font}";> {y[4].replace('.',',')} {signal} </span>'
+        y[4] = f'<span style="color:{color_font}";> {value} {signal} </span>'
         
-        y[1] = re.sub(r"\d", "", item[1])
+        y[1] = sub(r"\d", "", item[1])
         return tuple(y)
         
     def get_color(self, name_row):
@@ -141,7 +145,7 @@ class Email:
 
         mime_multipart.attach(MIMEText(texto_email, 'html', 'utf-8'))
 
-        self._open_server(mime_multipart)
+        # self._open_server(mime_multipart)
 
     def _open_server(self, mime_multipart: MIMEMultipart) -> None:
         with smtplib.SMTP(self.smtp_server, self.smtp_port) as server:
@@ -318,7 +322,7 @@ class Main:
     def variacao(self, new_value: str, old_value: str, ):
         values = []
         for data in [old_value, new_value]:
-            values.append(float(re.sub(r"[A-Z !+%]", "", data.replace(',','.'), 0, re.IGNORECASE)))
+            values.append(float(sub(r"[A-Z !+%]", "", data.replace(',','.'), 0, I)))
 
         result = ((values[1] - values[0]) / values[0]) * 100
 
