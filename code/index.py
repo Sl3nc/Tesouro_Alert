@@ -32,6 +32,7 @@ class Browser:
     ROOT_FOLDER = Path(__file__).parent
     CHROME_DRIVER_PATH = ROOT_FOLDER / 'src' / 'drivers' / 'chromedriver.exe'
     SELECTOR_TABLE = '#td-precos_taxas-tab_{0} > div > div.td-mercado-titulos__content > table'
+    button_resgatar = 'body > main > div.td-precosTaxas > div:nth-child(2) > div > div > ul > li:nth-child(2)'
     LINK = 'https://www.tesourodireto.com.br/titulos/precos-e-taxas.htm'
 
     def __init__(self, hide=True) -> None:
@@ -60,22 +61,35 @@ class Browser:
         return browser
     
     def search(self) -> list[tuple]:
-        p = []
-        for i in range(1, 3):
-            tabela = self.driver.find_element(By.CSS_SELECTOR, self.SELECTOR_TABLE.format(i))
-            linhas = tabela.find_elements(By.TAG_NAME, 'tbody')
-
-            for linha in linhas:
-                info = linha.find_elements(By.TAG_NAME, 'span')
-                for index, data in enumerate(info):
-                    info[index] = data.text
-                if len(info) == 4:
-                    info.insert(3, '--')
-                p.append((*[data for data in info if data != ''\
-                    and data[:3] != 'com' \
-                        and data[:3] != 'apo'],))
-            
+        p = self.pull_data(1)
+        sleep(1)
+        self.driver.find_element(By.CSS_SELECTOR, self.button_resgatar).click()
+        p = p + self.pull_data(2)
         self.driver.quit()
+        return p
+
+    def pull_data(self, table_index):
+        p = []
+        tabela = self.driver.find_element(By.CSS_SELECTOR, self.SELECTOR_TABLE.format(table_index))
+        linhas = tabela.find_elements(By.TAG_NAME, 'tbody')
+
+        sleep(2)
+        for linha in linhas:
+            info = linha.find_elements(By.TAG_NAME, 'span')
+            item = []
+            for data in info:
+                if data.text != '':
+                    item.append(data.text)
+
+            if len(item) == 5 \
+                and 'com' not in item[1]\
+                    and 'apo' not in item[1]:
+                item.insert(4, '--')
+                
+            p.append((*[data_item for data_item in item\
+                        if data_item[:3] != 'com'\
+                            and data_item[:3] != 'apo'],))
+            
         return p
     
 class Email:
@@ -124,7 +138,7 @@ class Email:
         value = sub(r'[a-z \$]','', y[4].replace('.','').replace(',','.'), flags= I)
 
         color_font = 'green' if float(value) > 0 else 'red'
-        signal = f'% {self.sign_up if float(y[4]) > 0 else self.sign_down}'
+        signal = f'% {self.sign_up if float(value) > 0 else self.sign_down}'
 
         y[4] = f'<span style="color:{color_font}";> {value} {signal} </span>'
         
