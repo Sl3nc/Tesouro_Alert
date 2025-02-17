@@ -61,15 +61,16 @@ class Browser:
         return browser
     
     def search(self) -> list[tuple]:
-        p = self.pull_data(1)
-        sleep(1)
+        table_lines = []
+        table_lines = self._pull_data(1)
+        self.driver.execute_script("window.scrollTo(0, 250)")
         self.driver.find_element(By.CSS_SELECTOR, self.button_resgatar).click()
-        p = p + self.pull_data(2)
+        table_lines = table_lines + self._pull_data(2)
         self.driver.quit()
-        return p
+        return table_lines.sort(key= lambda x: x[0])
 
-    def pull_data(self, table_index):
-        p = []
+    def _pull_data(self, table_index):
+        temp_lines = []
         tabela = self.driver.find_element(By.CSS_SELECTOR, self.SELECTOR_TABLE.format(table_index))
         linhas = tabela.find_elements(By.TAG_NAME, 'tbody')
 
@@ -81,16 +82,16 @@ class Browser:
                 if data.text != '':
                     item.append(data.text)
 
-            if len(item) == 5 \
-                and 'com' not in item[1]\
-                    and 'apo' not in item[1]:
-                item.insert(4, '--')
+            #Apenas funciona com o segundo método chamado 
+            if 'com juros semestrais' in item[1]:
+                item.pop(1)
+
+            if len(item) == 5:
+                item.insert(3, '--')
                 
-            p.append((*[data_item for data_item in item\
-                        if data_item[:3] != 'com'\
-                            and data_item[:3] != 'apo'],))
+            temp_lines.append((*[item_data for item_data in item],))
             
-        return p
+        return temp_lines
     
 class Email:
     PATH_MESSAGE = Path(__file__).parent / 'src' / 'doc' / 'base_message.html'
