@@ -92,49 +92,48 @@ class Browser:
             temp_lines.append((*[item_data for item_data in item],))
             
         return temp_lines
-    
-class Email:
+
+class Message:
     PATH_MESSAGE = Path(__file__).parent / 'src' / 'doc' / 'base_message.html'
 
-    def __init__(self) -> None:
-        self.smtp_server = os.getenv("SMTP_SERVER","")
-        self.smtp_port = os.getenv("SMTP_PORT", 0)
+    ref_cor = {
+        'IPCA': 'lightyellow',
+        'RENDA': 'lightblue',
+        'EDUCA': 'lightpink',
+        'PREFIXADO': 'lightcyan',
+        'SELIC': 'lightcoral'
+    }
 
-        self.smtp_username = os.getenv("EMAIL_SENDER","")
-        self.smtp_password = os.getenv("PASSWRD_SENDER","")
-
-        self.sign_up = '▲'
-        self.sign_down = '▼'
-
-        self.ref_cor = {
-            'IPCA': 'lightyellow',
-            'RENDA': 'lightblue',
-            'EDUCA': 'lightpink',
-            'PREFIXADO': 'lightcyan',
-            'SELIC': 'lightcoral'
-        }
+    def __init__(self, moves: list[tuple]):
+        self.moves = self._rows(moves)
         pass
 
-    def create_message(self, move: list[tuple]) -> str:
+    def create(self, pref: list[tuple]):
+        with open (self.PATH_MESSAGE, 'r', encoding='utf-8') as file:
+            text_message = file.read()
+            return Template(text_message)\
+                    .substitute(
+                        moves = ''.join(x for x in self.moves),
+                        prefer = ''.join(y for y in self._rows(pref))
+                    )
+
+    def _rows(self, table: list[tuple]) -> list[str]:
         format_data = []
-        for item in move:
-            item = self.update_values(item)
+        for item in table:
+            item = self.style(item)
 
             item_str = ''.join(
                 [f'<td> {data} </td>' for data in item[1:]]
             )
 
-            color = self.get_color(item[1])
+            color = self.set_color(item[1])
             format_data.append(
                  f'<tr style="background-color: {color};"> {item_str} </tr>'
             )
 
-        with open (self.PATH_MESSAGE, 'r', encoding='utf-8') as file:
-            text_message = file.read()
-            return Template(text_message)\
-                .substitute(infos =  ''.join(x for x in format_data))
+        return format_data
 
-    def update_values(self, item):
+    def style(self, item):
         y = list(item)
         value = sub(r'[a-z \$]','', y[4].replace('.','').replace(',','.'), flags= I)
 
@@ -146,11 +145,25 @@ class Email:
         y[1] = sub(r"\d", "", item[1])
         return tuple(y)
         
-    def get_color(self, name_row):
+    def set_color(self, name_row: str):
         for key, color in self.ref_cor.items():
             if key in name_row:
                 return color
         return 'white'
+    
+class Email:
+
+    def __init__(self) -> None:
+        self.smtp_server = os.getenv("SMTP_SERVER","")
+        self.smtp_port = os.getenv("SMTP_PORT", 0)
+
+        self.smtp_username = os.getenv("EMAIL_SENDER","")
+        self.smtp_password = os.getenv("PASSWRD_SENDER","")
+
+        self.sign_up = '▲'
+        self.sign_down = '▼'
+        pass
+
 
     def send(self, texto_email: str, to: str) -> None:
         mime_multipart = MIMEMultipart()
