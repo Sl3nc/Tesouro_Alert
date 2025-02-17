@@ -107,20 +107,12 @@ class Users:
         for email, pref_list in self.data:
             found_data = []
             for user_data in pref_list:
-
                 result = self._search(user_data, moves)
-                if result != None:
-                    found_data.append(result)
-                else:
-
-                    result = self._search(user_data, infos_db)
-                    if result != None: 
-                        found_data.append(result)
-
-                    else:
-                        found_data.append(
-                            (user_data['title'], user_data['year'],'--','--','--','--')
-                        )
+                if result == None:
+                    result = self._search(user_data, infos_db) 
+                if result == None:
+                    result = (user_data['title'], user_data['year'],'--','--','--','--')
+                found_data.append(result)
             prefers_dict[email] = found_data
         return prefers_dict
             
@@ -139,6 +131,10 @@ class Users:
         for infos in result:
             if infos[0] != user_data['title']:
                 result.pop()
+
+        if len(result) == 0:
+            return None
+        return result
 
 
 class Message:
@@ -354,11 +350,12 @@ class Main:
             moves = self.filter(infos_db, infos_site)
 
             if moves != []:
-                message = self.email.create_message(moves)
-                to = json.loads(os.environ['ADDRESSE'])
-                for person in to:
-                    self.email.send(message, person)
-                self.report.is_send(to)
+                msg = Message(moves)
+                users_data = Users.prefers(moves, infos_db)
+                for email, pref in users_data.items():
+                    message = msg.create(pref)
+                    self.email.send(message, email)
+                self.report.is_send(email)
         except Exception as err:
             traceback.print_exc()
             self.report.is_error(err)
