@@ -1,7 +1,9 @@
 {
-    "deltapricepedro@gmail.com": {
-        "title": "IPCA+",
-        "year": 2029,
-        "fees": false
-    }
+    "deltapricepedro@gmail.com": [
+        {
+            "title": "IPCA+",
+            "year": 2029,
+            "fees": false
+        }
+    ]
 }

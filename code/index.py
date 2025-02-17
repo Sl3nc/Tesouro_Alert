@@ -9,6 +9,7 @@ from selenium.webdriver.support import expected_conditions as ec
 import sqlite3
 import sys
 import os
+from json import load
 import traceback
 from re import sub, I
 import json
@@ -93,8 +94,55 @@ class Browser:
             
         return temp_lines
 
+class Users:
+    PATH = Path(__file__).parent / 'src' / 'json' / 'users.json'
+
+    def __init__(self):
+        with open(self.PATH, 'r') as file:
+            self.data = load(file)
+        pass
+
+    def prefers(self, moves: list[tuple], infos_db: list[tuple]) -> dict[str, list[tuple]]:
+        prefers_dict = {}
+        for email, pref_list in self.data:
+            found_data = []
+            for user_data in pref_list:
+
+                result = self._search(user_data, moves)
+                if result != None:
+                    found_data.append(result)
+                else:
+
+                    result = self._search(user_data, infos_db)
+                    if result != None: 
+                        found_data.append(result)
+
+                    else:
+                        found_data.append(
+                            (user_data['title'], user_data['year'],'--','--','--','--')
+                        )
+            prefers_dict[email] = found_data
+        return prefers_dict
+            
+    def _search(self, user_data: dict, base_data: list[tuple]):
+        result = []
+
+        {
+            1: 'year',
+            0: 'title',
+        }
+
+        for infos in base_data:
+            if infos[1] == user_data['year']:
+                result.append(infos)
+
+        for infos in result:
+            if infos[0] != user_data['title']:
+                result.pop()
+
+
 class Message:
-    PATH_MESSAGE = Path(__file__).parent / 'src' / 'doc' / 'base_message.html'
+    PATH = Path(__file__).parent / 'src' / 'doc' / 'base_message.html'
 
     ref_cor = {
         'IPCA': 'lightyellow',
@@ -109,7 +157,7 @@ class Message:
         pass
 
     def create(self, pref: list[tuple]):
-        with open (self.PATH_MESSAGE, 'r', encoding='utf-8') as file:
+        with open (self.PATH, 'r', encoding='utf-8') as file:
             text_message = file.read()
             return Template(text_message)\
                     .substitute(
