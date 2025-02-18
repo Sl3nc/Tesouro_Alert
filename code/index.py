@@ -301,13 +301,12 @@ class Report:
             file.write(f'Erro ocorrido: {message}')
             file.write('\n')
 
-    def is_send(self, to: list[str]):
+    def is_send(self, email: str):
         with open(self.path, 'a', encoding= 'utf-8') as file:
             file.write('\n' + '#'*10 + '\n')
             file.write('Email enviado às ' + datetime.strftime(datetime.now(), '%d/%m - %H:%M') + '\n'
             )
-            for person in to:
-                file.write(f'- {person} \n')
+            file.write(f'- {email} \n')
             file.write('\n')
 
     def is_new(self, unfound: list[tuple]):
@@ -315,7 +314,7 @@ class Report:
             file.write('\n' + '#'*10 + '\n')
             file.write('Linhas Adcionadas:\n')
             for row in unfound:
-                file.write(row[1])
+                file.write(row[0])
             file.write('\n')
 
     def is_updated(self, outdated: dict[str, tuple]):
@@ -323,7 +322,7 @@ class Report:
             file.write('\n' + '#'*10 + '\n')
             file.write('Linhas Atualizadas:\n')
             for row in outdated.values():
-                file.write(row[1])
+                file.write(row[0])
             file.write('\n')
 
 class Main:
