@@ -122,11 +122,12 @@ class Users:
         for infos in base_data:
             if int(infos[1]) == user_data['year'] and\
                 user_data['title'] in infos[0]:
-                if user_data['fees'] == True: 
-                    if "com juros semestrais" in infos[0]:
-                        return infos
-                    return None
-                return infos
+                if "com juros semestrais" in infos[0] and user_data['fees'] == True: 
+                    return infos
+                elif "com juros semestrais" not in infos[0] and user_data['fees'] != True: 
+                    return infos
+                continue
+        return None
 
 class Message:
     PATH = Path(__file__).parent / 'src' / 'doc' / 'base_message.html'
