@@ -118,19 +118,13 @@ class Users:
             
     def _search(self, user_data: dict, base_data: list[tuple]):
         result = []
-
-        {
-            1: 'year',
-            0: 'title',
-        }
-
         for infos in base_data:
-            if infos[1] == user_data['year']:
-                result.append(infos)
-
-        for infos in result:
-            if infos[0] != user_data['title']:
-                result.pop()
+            if infos[1] == user_data['year'] and user_data['title'] in infos[0]:
+                if user_data['fees'] == True: 
+                    if "com juros semestrais" in infos[0]:
+                        result.append(infos)
+                else:
+                    result.append(infos)
 
         if len(result) == 0:
             return None
