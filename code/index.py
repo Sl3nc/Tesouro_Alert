@@ -136,7 +136,8 @@ class Message:
         'RENDA': 'lightblue',
         'EDUCA': 'lightpink',
         'PREFIXADO': 'lightcyan',
-        'SELIC': 'lightcoral'
+        'SELIC': 'lightcoral',
+        'IGPM': 'lightgreen'
     }
 
     sign_up = '▲'
