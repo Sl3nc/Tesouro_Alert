@@ -1,35 +1,21 @@
-from time import sleep
-from abc import abstractmethod
-from selenium import webdriver
-from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.common.by import By
-from selenium.webdriver.common.keys import Keys
-from selenium.webdriver.support.wait import WebDriverWait
-from selenium.webdriver.support import expected_conditions as ec
-import sqlite3
-import sys
-import os
-from copy import deepcopy
+from re import sub, I
 from json import load
-import traceback
-from re import sub, I, compile
-import json
-from datetime import datetime
-import smtplib
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
-from string import Template
+from os import getenv
+from time import sleep
+from smtplib import SMTP
 from pathlib import Path
-import bisect
+from copy import deepcopy
+from sqlite3 import connect
+from string import Template
+from datetime import datetime
 from dotenv import load_dotenv
+from bisect import bisect_left
+from selenium import webdriver
+from email.mime.text import MIMEText
+from selenium.webdriver.common.by import By
+from email.mime.multipart import MIMEMultipart
+from selenium.webdriver.chrome.service import Service
 load_dotenv(Path(__file__).parent / 'src' / 'env' / '.env')
-
-def resource_path(relative_path):
-    base_path = getattr(
-        sys,
-        '_MEIPASS',
-        os.path.dirname(os.path.abspath(__file__)))
-    return os.path.join(base_path, relative_path)
 
 class Browser:
     ROOT_FOLDER = Path(__file__).parent
@@ -131,7 +117,7 @@ class Users:
         arr_copy.sort(key= lambda x: x[0])
         
         arr = [item[0] for item in arr_copy]
-        i = bisect.bisect_left(arr, wish)
+        i = bisect_left(arr, wish)
         if i != len(arr) and arr[i] == wish:
             return arr_copy[i]
         return None
@@ -203,11 +189,11 @@ class Message:
     
 class Email:
     def __init__(self) -> None:
-        self.smtp_server = os.getenv("SMTP_SERVER","")
-        self.smtp_port = os.getenv("SMTP_PORT", 0)
+        self.smtp_server = getenv("SMTP_SERVER","")
+        self.smtp_port = getenv("SMTP_PORT", 0)
 
-        self.smtp_username = os.getenv("EMAIL_SENDER","")
-        self.smtp_password = os.getenv("PASSWRD_SENDER","")
+        self.smtp_username = getenv("EMAIL_SENDER","")
+        self.smtp_password = getenv("PASSWRD_SENDER","")
         pass
 
     def send(self, texto_email: str, to: str) -> None:
@@ -221,14 +207,13 @@ class Email:
         self._open_server(mime_multipart)
 
     def _open_server(self, mime_multipart: MIMEMultipart) -> None:
-        with smtplib.SMTP(self.smtp_server, self.smtp_port) as server:
+        with SMTP(self.smtp_server, self.smtp_port) as server:
             server.starttls()
             server.login(self.smtp_username, self.smtp_password)
             server.send_message(mime_multipart)
         
 class DataBase:
-    DB_NAME = 'tesouro_db.sqlite3'
-    FOLDER_DB = resource_path(f'src\\db\\{DB_NAME}')
+    FOLDER_DB = Path(__file__).parent / 'src'/'db'/ 'tesouro_db.sqlite3'
     TABLE_LATE = 'Infos_Late'
     TABLE_OLD = 'Infos_Const'
 
@@ -261,7 +246,7 @@ class DataBase:
             '(?, ?)'
         )
 
-        self.connection = sqlite3.connect(self.FOLDER_DB)
+        self.connection = connect(self.FOLDER_DB)
         self.cursor = self.connection.cursor()
         pass
 
@@ -300,8 +285,9 @@ class DataBase:
         self.connection.close()
 
 class Report:
+    path = Path(__file__).parent / 'src' /'doc' / 'relatório_emails.txt'
+    
     def __init__(self) -> None:
-        self.path = resource_path('src\\doc\\relatório_emails.txt')
         pass
 
     def is_error(self, message):
@@ -369,7 +355,6 @@ class Main:
                 self.report.is_send(email)
 
         except Exception as err:
-            traceback.print_exc()
             self.report.is_error(err)
         finally:
             self.db.exit()
