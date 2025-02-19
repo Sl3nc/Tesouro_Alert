@@ -9,6 +9,7 @@ from selenium.webdriver.support import expected_conditions as ec
 import sqlite3
 import sys
 import os
+from copy import deepcopy
 from json import load
 import traceback
 from re import sub, I, compile
@@ -19,6 +20,7 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from string import Template
 from pathlib import Path
+import bisect
 from dotenv import load_dotenv
 load_dotenv(Path(__file__).parent / 'src' / 'env' / '.env')
 
@@ -119,14 +121,19 @@ class Users:
         return prefers_dict
             
     def _search(self, user_data: dict, base_data: list[tuple]) -> tuple:
-        for infos in base_data:
-            if int(infos[1]) == user_data['year'] and\
-                user_data['title'] in infos[0]:
-                if "com juros semestrais" in infos[0] and user_data['fees'] == True: 
-                    return infos
-                elif "com juros semestrais" not in infos[0] and user_data['fees'] != True: 
-                    return infos
-                continue
+        fees = ''
+        if user_data['fees'] == True:
+            fees = '\ncom juros semestrais {0}'.format(user_data['year'])
+
+        wish = 'TESOURO {0} {1}{2}'.format(user_data['title'], user_data['year'], fees)
+
+        arr_copy = deepcopy(base_data)
+        arr_copy.sort(key= lambda x: x[0])
+        
+        arr = [item[0] for item in arr_copy]
+        i = bisect.bisect_left(arr, wish)
+        if i != len(arr) and arr[i] == wish:
+            return arr_copy[i]
         return None
 
 class Message:
@@ -354,6 +361,7 @@ class Main:
 
             if moves != []:
                 msg = Message(moves)
+                infos_db = [(item[1:4] + (0,) + item[4:]) for item in infos_db]
                 users_pref = Users().prefers(moves, infos_db)
                 for email, pref in users_pref.items():
                     message = msg.create(pref)
@@ -374,14 +382,21 @@ class Main:
             achado = False
             for data_db in infos_db:
                 if data_site[0] == data_db[1]:
-                    achado = True
+
+                    if data_site[3] == '--' and data_db[4] == '--':
+                        achado = True
+                    elif data_site[3] != '--' and data_db[4] != '--':
+                        achado = True
+                    else:    
+                        continue
+
                     if data_site[2] != data_db[3]:
                         outdated_site[str(data_db[0])] = (
                             data_site[0:3] + 
                             (self.variacao(data_site[2], data_db[3]),) + 
                             data_site[3:]
                         )
-                    # continue
+                    break
             if achado == False: 
                 unfound_site.append((data_site[0:3] + (0,) + data_site[3:]))
 
