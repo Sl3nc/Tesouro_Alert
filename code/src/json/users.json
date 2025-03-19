@@ -5,5 +5,24 @@
             "year": 2029,
             "fees": false
         }
+    ],
+    "bruno.deltaprice@outlook.com": [
+        {
+            "title": "IPCA+",
+            "year": 2045,
+            "fees": false
+        }
+    ],
+    "roberto@deltaprice.com.br": [
+        {
+            "title": "IPCA+",
+            "year": 2035,
+            "fees": false
+        },
+        {
+            "title": "IPCA+",
+            "year": 2045,
+            "fees": false
+        }
     ]
 }
