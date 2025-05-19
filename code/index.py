@@ -26,8 +26,8 @@ class Browser:
 
     def __init__(self, hide=True) -> None:
         self.driver = self.make_chrome_browser()
-        # if hide == True:
-        #     self.driver.set_window_position(-10000,0)
+        if hide == True:
+            self.driver.set_window_position(-10000,0)
         self.driver.get(self.LINK)
         pass
 
