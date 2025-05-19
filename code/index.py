@@ -24,13 +24,6 @@ import bisect
 from dotenv import load_dotenv
 load_dotenv(Path(__file__).parent / 'src' / 'env' / '.env')
 
-def resource_path(relative_path):
-    base_path = getattr(
-        sys,
-        '_MEIPASS',
-        os.path.dirname(os.path.abspath(__file__)))
-    return os.path.join(base_path, relative_path)
-
 class Browser:
     ROOT_FOLDER = Path(__file__).parent
     CHROME_DRIVER_PATH = ROOT_FOLDER / 'src' / 'drivers' / 'chromedriver.exe'
@@ -227,8 +220,7 @@ class Email:
             server.send_message(mime_multipart)
         
 class DataBase:
-    DB_NAME = 'tesouro_db.sqlite3'
-    FOLDER_DB = resource_path(f'src\\db\\{DB_NAME}')
+    FOLDER_DB = Path(__file__).parent /'src'/'db'/ 'tesouro_db.sqlite3'
     TABLE_LATE = 'Infos_Late'
     TABLE_OLD = 'Infos_Const'
 
@@ -301,7 +293,7 @@ class DataBase:
 
 class Report:
     def __init__(self) -> None:
-        self.path = resource_path('src\\doc\\relatório_emails.txt')
+        self.path = Path(__file__).parent /'src'/'doc'/'relatório_emails.txt'
         pass
 
     def is_error(self, message):
