@@ -58,10 +58,12 @@ class Browser:
     
     def search(self) -> list[tuple]:
         table_lines = []
-        table_lines = self._pull_data(1)
         self.driver.execute_script("window.scrollTo(0, 250)")
+        table_lines = self._pull_data(1)
+
         self.driver.find_element(By.CSS_SELECTOR, self.button_resgatar).click()
         table_lines = table_lines + self._pull_data(2)
+        
         self.driver.quit()
         table_lines.sort(key= lambda x: x[0])
         return table_lines
