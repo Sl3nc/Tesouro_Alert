@@ -18,6 +18,9 @@ from selenium.webdriver.chrome.service import Service
 load_dotenv(Path(__file__).parent / 'src' / 'env' / '.env')
 
 class Browser:
+    """
+    Classe responsável por automatizar a navegação e extração de dados do site do Tesouro Direto usando Selenium.
+    """
     ROOT_FOLDER = Path(__file__).parent
     CHROME_DRIVER_PATH = ROOT_FOLDER / 'src' / 'drivers' / 'chromedriver.exe'
     SELECTOR_TABLE = '#td-precos_taxas-tab_{0} > div > div.td-mercado-titulos__content > table'
@@ -25,6 +28,10 @@ class Browser:
     LINK = 'https://www.tesourodireto.com.br/titulos/precos-e-taxas.htm'
 
     def __init__(self, hide=True) -> None:
+        """
+        Inicializa o navegador Chrome e acessa a página do Tesouro Direto.
+        :param hide: Se True, oculta a janela do navegador.
+        """
         self.driver = self.make_chrome_browser()
         if hide == True:
             self.driver.set_window_position(-10000,0)
@@ -32,6 +39,11 @@ class Browser:
         pass
 
     def make_chrome_browser(self,*options: str) -> webdriver.Chrome:
+        """
+        Cria uma instância do navegador Chrome com opções customizadas.
+        :param options: Argumentos adicionais para o Chrome.
+        :return: Instância do webdriver.Chrome.
+        """
         chrome_options = webdriver.ChromeOptions()
 
         # chrome_options.add_argument('--headless')
@@ -50,6 +62,10 @@ class Browser:
         return browser
     
     def search(self) -> list[tuple]:
+        """
+        Realiza a extração dos dados das tabelas de títulos do Tesouro Direto.
+        :return: Lista de tuplas com os dados extraídos.
+        """
         table_lines = []
         self.driver.execute_script("window.scrollTo(0, 250)")
         table_lines = self._pull_data(1)
@@ -62,6 +78,11 @@ class Browser:
         return table_lines
 
     def _pull_data(self, table_index):
+        """
+        Extrai os dados de uma tabela específica da página.
+        :param table_index: Índice da tabela a ser extraída.
+        :return: Lista de tuplas com os dados da tabela.
+        """
         temp_lines = []
         tabela = self.driver.find_element(By.CSS_SELECTOR, self.SELECTOR_TABLE.format(table_index))
         linhas = tabela.find_elements(By.TAG_NAME, 'tbody')
@@ -87,14 +108,26 @@ class Browser:
         return temp_lines
 
 class Users:
+    """
+    Classe responsável por gerenciar as preferências dos usuários cadastrados.
+    """
     PATH = Path(__file__).parent / 'src' / 'json' / 'users.json'
 
     def __init__(self):
+        """
+        Carrega as preferências dos usuários a partir de um arquivo JSON.
+        """
         with open(self.PATH, 'r') as file:
             self.data = load(file)
         pass
 
     def prefers(self, moves: list[tuple], infos_db: list[tuple]) -> dict[str, list[tuple]]:
+        """
+        Retorna um dicionário com os dados preferidos de cada usuário.
+        :param moves: Lista de tuplas com movimentações recentes.
+        :param infos_db: Lista de tuplas com dados do banco.
+        :return: Dicionário {email: [preferências encontradas]}
+        """
         prefers_dict = {}
         for email, pref_list in self.data.items():
             found_data = []
@@ -109,6 +142,12 @@ class Users:
         return prefers_dict
             
     def _search(self, user_data: dict, base_data: list[tuple]) -> tuple:
+        """
+        Busca um título específico nas listas fornecidas.
+        :param user_data: Preferência do usuário.
+        :param base_data: Lista de dados para busca.
+        :return: Tupla com os dados encontrados ou None.
+        """
         fees = ''
         if user_data['fees'] == True:
             fees = '\ncom juros semestrais {0}'.format(user_data['year'])
@@ -125,6 +164,9 @@ class Users:
         return None
 
 class Message:
+    """
+    Classe responsável por montar o corpo do e-mail em HTML com as informações dos títulos.
+    """
     PATH = Path(__file__).parent / 'src' / 'doc' / 'base_message.html'
 
     ref_cor = {
@@ -140,10 +182,19 @@ class Message:
     sign_down = '▼'
 
     def __init__(self, moves: list[tuple]):
+        """
+        Inicializa a mensagem com as movimentações recentes.
+        :param moves: Lista de tuplas com movimentações.
+        """
         self.moves = self._rows(moves)
         pass
 
     def create(self, pref: list[tuple]):
+        """
+        Cria o corpo do e-mail substituindo os placeholders do template HTML.
+        :param pref: Lista de tuplas com preferências do usuário.
+        :return: String HTML do e-mail.
+        """
         with open (self.PATH, 'r', encoding='utf-8') as file:
             text_message = file.read()
             return Template(text_message)\
@@ -153,6 +204,11 @@ class Message:
                     )
 
     def _rows(self, table: list[tuple]) -> list[str]:
+        """
+        Formata as linhas da tabela em HTML.
+        :param table: Lista de tuplas com dados.
+        :return: Lista de strings HTML.
+        """
         format_data = []
         for item in table:
             item = self.style(item)
@@ -169,6 +225,11 @@ class Message:
         return format_data
 
     def style(self, item):
+        """
+        Aplica estilos de cor e sinal de variação à linha.
+        :param item: Tupla de dados.
+        :return: Tupla estilizada.
+        """
         y = list(item)
         variation_value = float(y[3])
 
@@ -184,13 +245,24 @@ class Message:
         return tuple(y)
         
     def set_color(self, name_row: str):
+        """
+        Define a cor de fundo da linha de acordo com o tipo de título.
+        :param name_row: Nome do título.
+        :return: String com a cor.
+        """
         for key, color in self.ref_cor.items():
             if key in name_row:
                 return color
         return 'white'
     
 class Email:
+    """
+    Classe responsável pelo envio de e-mails via SMTP.
+    """
     def __init__(self) -> None:
+        """
+        Inicializa as configurações do servidor SMTP a partir das variáveis de ambiente.
+        """
         self.smtp_server = getenv("SMTP_SERVER","")
         self.smtp_port = getenv("SMTP_PORT", 0)
 
@@ -199,28 +271,42 @@ class Email:
         pass
 
     def send(self, texto_email: str, to: str) -> None:
+        """
+        Envia um e-mail HTML para o destinatário.
+        :param texto_email: Corpo do e-mail em HTML.
+        :param to: E-mail do destinatário.
+        """
         mime_multipart = MIMEMultipart()
         mime_multipart['From'] = self.smtp_username
         mime_multipart['To'] = to
-        mime_multipart['Subject'] = f'Atualização Tesouro Direto {datetime.strftime(datetime.now(), '%d/%m - %H:%M')}'
+        mime_multipart['Subject'] = f'Atualização Tesouro Direto {datetime.strftime(datetime.now(), "%d/%m - %H:%M")}'
 
         mime_multipart.attach(MIMEText(texto_email, 'html', 'utf-8'))
 
         self._open_server(mime_multipart)
 
     def _open_server(self, mime_multipart: MIMEMultipart) -> None:
+        """
+        Realiza a conexão com o servidor SMTP e envia a mensagem.
+        :param mime_multipart: Mensagem MIME a ser enviada.
+        """
         with SMTP(self.smtp_server, self.smtp_port) as server:
             server.starttls()
             server.login(self.smtp_username, self.smtp_password)
             server.send_message(mime_multipart)
         
 class DataBase:
+    """
+    Classe responsável pelo gerenciamento do banco de dados SQLite dos títulos.
+    """
     FOLDER_DB = Path(__file__).parent / 'src'/'db'/ 'tesouro_db.sqlite3'
     TABLE_LATE = 'Infos_Late'
     TABLE_OLD = 'Infos_Const'
 
     def __init__(self) -> None:
-        
+        """
+        Inicializa a conexão e os comandos SQL.
+        """
         self.query_columns = (
             'PRAGMA table_info({0});'
         )
@@ -253,6 +339,10 @@ class DataBase:
         pass
 
     def init(self, infos_site: list[tuple]):
+        """
+        Inicializa o banco de dados com os dados extraídos do site.
+        :param infos_site: Lista de tuplas com dados do site.
+        """
         for item in infos_site:
             self.cursor.execute(
                 self.insert_late,
@@ -261,13 +351,21 @@ class DataBase:
         self.connection.commit()
 
     def query(self) -> list[tuple]:
+        """
+        Consulta os dados atuais do banco.
+        :return: Lista de tuplas com os dados.
+        """
         self.cursor.execute(
             self.query_late
         )
         return self.cursor.fetchall()
     
     def insert(self, data_site) -> None:
-         for item in data_site:
+        """
+        Insere novos dados no banco.
+        :param data_site: Lista de tuplas a serem inseridas.
+        """
+        for item in data_site:
             self.cursor.execute(
                 self.insert_late,
                 (item[0], item[1], item[2], item[4], item[5], item[6])
@@ -275,6 +373,10 @@ class DataBase:
             self.connection.commit()
     
     def update(self, move: dict[str,tuple]):
+        """
+        Atualiza dados existentes no banco.
+        :param move: Dicionário {id: tupla de dados atualizados}
+        """
         for id, item in move.items():
             self.cursor.execute(
                 self.update_late,
@@ -283,22 +385,36 @@ class DataBase:
             self.connection.commit()
 
     def exit(self):
+        """
+        Fecha a conexão com o banco de dados.
+        """
         self.cursor.close()
         self.connection.close()
 
 class Report:
+    """
+    Classe responsável por registrar logs de operações, erros e envios de e-mails.
+    """
     path = Path(__file__).parent / 'src' /'doc' / 'relatório_emails.txt'
     
     def __init__(self) -> None:
         pass
 
     def is_error(self, message):
+        """
+        Registra um erro ocorrido.
+        :param message: Mensagem de erro.
+        """
         with open(self.path, 'a', encoding= 'utf-8') as file:
             file.write('\n' + '#'*10 + '\n')
             file.write(f'Erro ocorrido: {message}')
             file.write('\n')
 
     def is_send(self, email: str):
+        """
+        Registra o envio de um e-mail.
+        :param email: E-mail do destinatário.
+        """
         with open(self.path, 'a', encoding= 'utf-8') as file:
             file.write('\n' + '#'*10 + '\n')
             file.write('Email enviado às ' + datetime.strftime(datetime.now(), '%d/%m - %H:%M') + '\n'
@@ -307,6 +423,10 @@ class Report:
             file.write('\n')
 
     def is_new(self, unfound: list[tuple]):
+        """
+        Registra linhas adicionadas ao banco.
+        :param unfound: Lista de tuplas adicionadas.
+        """
         with open(self.path, 'a', encoding= 'utf-8') as file:
             file.write('\n' + '#'*10 + '\n')
             file.write('Linhas Adcionadas:\n')
@@ -315,6 +435,10 @@ class Report:
             file.write('\n')
 
     def is_updated(self, outdated: dict[str, tuple]):
+        """
+        Registra linhas atualizadas no banco.
+        :param outdated: Dicionário de linhas atualizadas.
+        """
         with open(self.path, 'a', encoding= 'utf-8') as file:
             file.write('\n' + '#'*10 + '\n')
             file.write('Linhas Atualizadas:\n')
@@ -323,13 +447,22 @@ class Report:
             file.write('\n')
 
 class Main:
+    """
+    Classe principal que orquestra a execução do programa.
+    """
     def __init__(self) -> None:
+        """
+        Inicializa as instâncias de Email, DataBase e Report.
+        """
         self.email = Email()
         self.db = DataBase()
         self.report = Report()
         pass
 
     def hard_work(self):
+        """
+        Executa o fluxo principal: coleta dados, compara, atualiza banco, envia e-mails e registra logs.
+        """
         try:
             infos_site = Browser().search()
             infos_db = self.db.query()
@@ -362,6 +495,12 @@ class Main:
             self.db.exit()
 
     def filter(self, infos_db: list[tuple], infos_site: list[tuple]):
+        """
+        Compara os dados do site com o banco e identifica atualizações e novos títulos.
+        :param infos_db: Dados do banco.
+        :param infos_site: Dados do site.
+        :return: (dicionário de atualizações, lista de novos títulos)
+        """
         outdated_site = {}
         unfound_site = []
 
@@ -390,6 +529,12 @@ class Main:
         return outdated_site, unfound_site
     
     def variacao(self, new_value: str, old_value: str, ):
+        """
+        Calcula a variação percentual entre dois valores.
+        :param new_value: Valor novo.
+        :param old_value: Valor antigo.
+        :return: Variação percentual.
+        """
         new_value = float(sub(r'[A-Z !+%]', '',\
                         new_value.replace(',','.'), flags= I))
         
@@ -401,6 +546,9 @@ class Main:
         return float(f'{result:,.2f}')
     
     def init_db(self):
+        """
+        Inicializa o banco de dados com os dados atuais do site.
+        """
         self.db.init(Browser().search())
 
 if __name__ == '__main__':
