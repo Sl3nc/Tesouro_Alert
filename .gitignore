@@ -6,3 +6,5 @@ code/src/drivers
 /dist
 /build
 *.spec
+*/__pycache__
+code/src/json/users.json
