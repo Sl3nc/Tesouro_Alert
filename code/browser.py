@@ -3,6 +3,7 @@ from time import sleep
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.chrome.options import Options
 
 class Browser:
     """
@@ -14,29 +15,23 @@ class Browser:
     button_resgatar = 'body > main > div.td-precosTaxas > div:nth-child(2) > div > div > ul > li:nth-child(2)'
     LINK = 'https://www.tesourodireto.com.br/titulos/precos-e-taxas.htm'
 
-    def __init__(self, hide=True) -> None:
+    def __init__(self) -> None:
         """
         Inicializa o navegador Chrome e acessa a página do Tesouro Direto.
         :param hide: Se True, oculta a janela do navegador.
         """
         self.driver = self.make_chrome_browser()
-        if hide == True:
-            self.driver.set_window_position(-10000,0)
         self.driver.get(self.LINK)
         pass
 
-    def make_chrome_browser(self,*options: str) -> webdriver.Chrome:
+    def make_chrome_browser(self) -> webdriver.Chrome:
         """
         Cria uma instância do navegador Chrome com opções customizadas.
         :param options: Argumentos adicionais para o Chrome.
         :return: Instância do webdriver.Chrome.
         """
-        chrome_options = webdriver.ChromeOptions()
-
+        chrome_options = Options()
         # chrome_options.add_argument('--headless')
-        if options is not None:
-            for option in options:
-                chrome_options.add_argument(option)
 
         chrome_service = Service(
             executable_path=str(self.CHROME_DRIVER_PATH),
@@ -46,6 +41,9 @@ class Browser:
             service=chrome_service,
             options=chrome_options
         )
+
+        browser.minimize_window()
+        browser.set_window_position(-10000,0)
         return browser
     
     def search(self) -> list[tuple]:

@@ -40,9 +40,21 @@ class DataBase:
             '(?, ?)'
         )
 
+        pass
+
+    def open(self):
+        """
+        Abre a conexão com o banco de dados
+        """
         self.connection = connect(self.FOLDER_DB)
         self.cursor = self.connection.cursor()
-        pass
+
+    def close(self):
+        """
+        Fecha a conexão com o banco de dados.
+        """
+        self.cursor.close()
+        self.connection.close()
 
     def init(self, infos_site: list[tuple]):
         """
@@ -89,10 +101,3 @@ class DataBase:
                 (item[0], item[1], item[2], item[4], item[5], item[6], id)
             )
             self.connection.commit()
-
-    def exit(self):
-        """
-        Fecha a conexão com o banco de dados.
-        """
-        self.cursor.close()
-        self.connection.close()

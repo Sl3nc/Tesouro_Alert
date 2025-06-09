@@ -1,3 +1,4 @@
+from datetime import time, datetime
 from dotenv import load_dotenv
 from email_delta import Email
 from database import DataBase
@@ -7,6 +8,7 @@ from report import Report
 from pathlib import Path
 from users import Users
 from re import sub, I
+from time import sleep
 
 load_dotenv(Path(__file__).parent / 'src' / 'env' / '.env')
 
@@ -28,6 +30,7 @@ class Main:
         Executa o fluxo principal: coleta dados, compara, atualiza banco, envia e-mails e registra logs.
         """
         try:
+            self.db.open()
             infos_site = Browser().search()
             infos_db = self.db.query()
 
@@ -56,7 +59,7 @@ class Main:
         except Exception as err:
             self.report.is_error(err)
         finally:
-            self.db.exit()
+            self.db.close()
 
     def filter(self, infos_db: list[tuple], infos_site: list[tuple]):
         """
@@ -99,14 +102,10 @@ class Main:
         :param old_value: Valor antigo.
         :return: Variação percentual.
         """
-        new_value = float(sub(r'[A-Z !+%]', '',\
-                        new_value.replace(',','.'), flags= I))
-        
-        old_value = float(sub(r'[A-Z !+%]', '',\
-                        old_value.replace(',','.'), flags= I))
+        for i in [new_value, old_value]:
+            i = float(sub(r'[A-Z !+%]', '', i.replace(',','.'), flags= I))
 
-        result = ((new_value - old_value) / old_value) * 100
-
+        result = round((new_value - old_value), 2) 
         return float(f'{result:,.2f}')
     
     def init_db(self):
@@ -116,4 +115,14 @@ class Main:
         self.db.init(Browser().search())
 
 if __name__ == '__main__':
-    Main().hard_work()
+    current_time = datetime.now()
+    start_time = time(9, 30, 0, 0)
+    stop_time = time(18, 0, 0, 0)
+    main = Main()
+
+    while current_time.time() < stop_time:
+        if current_time.time() > start_time:
+            main.hard_work()
+
+        sleep(300)
+        current_time = datetime.now()
