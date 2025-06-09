@@ -42,7 +42,6 @@ class Browser:
             options=chrome_options
         )
 
-        browser.minimize_window()
         browser.set_window_position(-10000,0)
         return browser
     

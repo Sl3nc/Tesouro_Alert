@@ -102,11 +102,10 @@ class Main:
         :param old_value: Valor antigo.
         :return: Variação percentual.
         """
-        for i in [new_value, old_value]:
-            i = float(sub(r'[A-Z !+%]', '', i.replace(',','.'), flags= I))
+        new_value = float(sub(r'[A-Z !+%]', '', new_value.replace(',','.'), flags= I))
+        old_value = float(sub(r'[A-Z !+%]', '', old_value.replace(',','.'), flags= I))
 
-        result = round((new_value - old_value), 2) 
-        return float(f'{result:,.2f}')
+        return round((new_value - old_value), 2) 
     
     def init_db(self):
         """
