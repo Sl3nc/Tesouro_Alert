@@ -4,6 +4,8 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.support.wait import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 
 class Browser:
     """
@@ -31,7 +33,8 @@ class Browser:
         :return: Instância do webdriver.Chrome.
         """
         chrome_options = Options()
-        # chrome_options.add_argument('--headless')
+        chrome_options.add_argument('--headless')
+        chrome_options.add_argument("--window-size=1920x1080") #
 
         chrome_service = Service(
             executable_path=str(self.CHROME_DRIVER_PATH),
@@ -42,7 +45,7 @@ class Browser:
             options=chrome_options
         )
 
-        browser.set_window_position(-10000,0)
+        # browser.set_window_position(-10000,0)
         return browser
     
     def search(self) -> list[tuple]:
@@ -52,6 +55,7 @@ class Browser:
         """
         table_lines = []
         self.driver.execute_script("window.scrollTo(0, 250)")
+        self.a()
         table_lines = self._pull_data(1)
 
         self.driver.find_element(By.CSS_SELECTOR, self.button_resgatar).click()
@@ -60,6 +64,49 @@ class Browser:
         self.driver.quit()
         table_lines.sort(key= lambda x: x[0])
         return table_lines
+    
+    def a(self):
+        try:
+        # Wait until 'what you specified' is visible
+            # wait =  WebDriverWait(self.driver, 60)
+            # a = wait.until(EC.presence_of_all_elements_located((By.TAG_NAME, 'span')))
+
+            cards = self.driver.find_element(By.CSS_SELECTOR, '#td-precos_taxas-tab_1 > div')
+            # a[0].get_attribute('innerHTML')
+
+            content = self.content(cards)
+            print(content)
+
+            titles = self.titles(cards)
+            print(titles)
+        except Exception as exp:
+            print("Exception occured", exp)
+
+    def content(self, cards):
+        span = cards.find_elements(By.TAG_NAME, 'span')
+
+        step = 4
+        content = []
+        filter_span = [x.text for x in span if x.text != '']
+        start_index = 0 if filter_span[0].text.isnumeric() == True else 1
+        total_content = len(filter_span)
+
+        for index in range(3, total_content, step):
+            content.append(filter_span[start_index:index])
+            start_index = index + 1 
+                
+            if start_index < total_content\
+                and filter_span[start_index].text.isnumeric() == False:
+                start_index = start_index + 1
+                step = step + 1
+        return content
+
+    def titles(self, cards):
+        h3 = cards.find_elements(By.TAG_NAME, 'h3')
+        return [i.text.replace('\n', ' ').replace(' +', '+') for i in h3]
+
+    def valid_title(x):
+        return True if x.text != '' else False
 
     def _pull_data(self, table_index):
         """
@@ -73,6 +120,10 @@ class Browser:
 
         sleep(2)
         for linha in linhas:
+            # tr = linha.find_element(By.TAG_NAME, 'tr')
+            # td = tr.find_elements(By.TAG_NAME, 'td')
+            # span = td[0].find_element(By.TAG_NAME, 'span')
+         
             info = linha.find_elements(By.TAG_NAME, 'span')
             item = []
             for data in info:
