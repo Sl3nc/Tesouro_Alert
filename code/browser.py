@@ -6,6 +6,7 @@ from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+from itertools import chain
 
 class Browser:
     """
@@ -16,6 +17,7 @@ class Browser:
     SELECTOR_TABLE = '#td-precos_taxas-tab_{0} > div > div.td-mercado-titulos__content > table'
     button_resgatar = 'body > main > div.td-precosTaxas > div:nth-child(2) > div > div > ul > li:nth-child(2)'
     LINK = 'https://www.tesourodireto.com.br/titulos/precos-e-taxas.htm'
+    selector_table = '#td-precos_taxas-tab_{0} > div'
 
     def __init__(self) -> None:
         """
@@ -32,9 +34,9 @@ class Browser:
         :param options: Argumentos adicionais para o Chrome.
         :return: Instância do webdriver.Chrome.
         """
-        chrome_options = Options()
+        chrome_options = webdriver.ChromeOptions()
         chrome_options.add_argument('--headless')
-        chrome_options.add_argument("--window-size=1920x1080") #
+        chrome_options.add_argument("--window-size=1920x1080")
 
         chrome_service = Service(
             executable_path=str(self.CHROME_DRIVER_PATH),
@@ -53,62 +55,73 @@ class Browser:
         Realiza a extração dos dados das tabelas de títulos do Tesouro Direto.
         :return: Lista de tuplas com os dados extraídos.
         """
-        table_lines = []
-        self.driver.execute_script("window.scrollTo(0, 250)")
-        self.a()
-        table_lines = self._pull_data(1)
+        wait = WebDriverWait(self.driver, 10)
+        self.driver.execute_script("window.scrollTo(0, 550)")
 
-        self.driver.find_element(By.CSS_SELECTOR, self.button_resgatar).click()
-        table_lines = table_lines + self._pull_data(2)
+        btn_switch = wait.until(EC.element_to_be_clickable(
+            (By.CSS_SELECTOR, '#switchVerTabelas')
+        ))
+        btn_switch.click()
+
+        table_rows1 = self.table_rows(1)
+        # table_rows1 = self.card_rows(1)
+
+        btn_resgate = wait.until(EC.element_to_be_clickable(
+            (By.CSS_SELECTOR, self.button_resgatar)
+        ))
+        btn_resgate.click()
+        
+        table_rows2 = self.table_rows(2)
+        # table_rows2 = self.card_rows(2)
+
+        table_rows = list(chain(table_rows1, table_rows2))
         
         self.driver.quit()
-        table_lines.sort(key= lambda x: x[0])
-        return table_lines
+        table_rows.sort(key= lambda x: x[0])
+        return table_rows
     
-    def a(self):
+    def card_rows(self, table_id) -> list[list[str]]:
         try:
-        # Wait until 'what you specified' is visible
-            # wait =  WebDriverWait(self.driver, 60)
-            # a = wait.until(EC.presence_of_all_elements_located((By.TAG_NAME, 'span')))
+            cards = self.driver.find_element(
+                By.CSS_SELECTOR, self.selector_table.format(table_id)
+            )
+            
+            h3 = cards.find_elements(By.TAG_NAME, 'h3')
+            titles = [i.text.replace('\n', ' ').replace(' +', '+') for i in h3]
 
-            cards = self.driver.find_element(By.CSS_SELECTOR, '#td-precos_taxas-tab_1 > div')
-            # a[0].get_attribute('innerHTML')
+            span = cards.find_elements(By.TAG_NAME, 'span')
+            filter_span = [x.text for x in span if x.text != '']
 
-            content = self.content(cards)
-            print(content)
+            content = self.content(filter_span)
 
-            titles = self.titles(cards)
-            print(titles)
+            for index, x in enumerate(content):
+                x.insert(0, titles[index]) 
+
+            return content
+
         except Exception as exp:
             print("Exception occured", exp)
 
-    def content(self, cards):
-        span = cards.find_elements(By.TAG_NAME, 'span')
-
-        step = 4
+    def content(self, filter_span) -> list[list[str]]:
+        step = 0
         content = []
-        filter_span = [x.text for x in span if x.text != '']
-        start_index = 0 if filter_span[0].text.isnumeric() == True else 1
+        start_index = 0 if filter_span[0].isnumeric() == True else 1
         total_content = len(filter_span)
 
-        for index in range(3, total_content, step):
-            content.append(filter_span[start_index:index])
-            start_index = index + 1 
+        for index in range(4, total_content, 4):
+            end_index = index + step
+            data = filter_span[start_index:end_index]
+            if data != []:
+                content.append(data)
+            start_index = end_index
                 
             if start_index < total_content\
-                and filter_span[start_index].text.isnumeric() == False:
+                and filter_span[start_index].isnumeric() == False:
                 start_index = start_index + 1
                 step = step + 1
         return content
 
-    def titles(self, cards):
-        h3 = cards.find_elements(By.TAG_NAME, 'h3')
-        return [i.text.replace('\n', ' ').replace(' +', '+') for i in h3]
-
-    def valid_title(x):
-        return True if x.text != '' else False
-
-    def _pull_data(self, table_index):
+    def table_rows(self, table_index):
         """
         Extrai os dados de uma tabela específica da página.
         :param table_index: Índice da tabela a ser extraída.
