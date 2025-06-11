@@ -8,6 +8,9 @@ from selenium import webdriver
 from itertools import chain
 from pathlib import Path
 
+from time import sleep
+from traceback import print_exc
+
 class Browser:
     """
     Classe responsável por automatizar a navegação e extração de dados do site do Tesouro Direto usando Selenium.
@@ -50,8 +53,12 @@ class Browser:
 
             # browser.set_window_position(-10000,0)
         # except SessionNotCreatedException:
-        except Exception:
+        except Exception as err:
+            print_exc()
+            print()
             DriverMaintenance().upgrade()
+            print(self.CHROME_DRIVER_PATH)
+            sleep(3000)
             return self.make_chrome_browser()
         return browser
     

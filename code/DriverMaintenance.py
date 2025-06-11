@@ -38,7 +38,7 @@ class DriverMaintenance:
         """
         object_json = self._download_json()
         response = self._driver_response(object_json)
-        print(response.ok)
+        # print(response.ok)
         with open(self.zip_path, mode="wb") as file:
             file.write(response.content)
 

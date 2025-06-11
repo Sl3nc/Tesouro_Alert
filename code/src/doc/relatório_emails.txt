@@ -620,3 +620,37 @@ aposentadoria extra 2065
 Email enviado às 11/06 - 08:53
 - deltapricepedro@gmail.com 
 
+
+##########
+Erro ocorrido: Message: element click intercepted: Element is not clickable at point (186, 700)
+  (Session info: chrome=137.0.7151.69)
+Stacktrace:
+	GetHandleVerifier [0x0x7ff79c4efe75+79173]
+	GetHandleVerifier [0x0x7ff79c4efed0+79264]
+	(No symbol) [0x0x7ff79c2a9e5a]
+	(No symbol) [0x0x7ff79c308599]
+	(No symbol) [0x0x7ff79c305f32]
+	(No symbol) [0x0x7ff79c302f71]
+	(No symbol) [0x0x7ff79c301e61]
+	(No symbol) [0x0x7ff79c2f3464]
+	(No symbol) [0x0x7ff79c32896a]
+	(No symbol) [0x0x7ff79c2f2d16]
+	(No symbol) [0x0x7ff79c328b80]
+	(No symbol) [0x0x7ff79c35100d]
+	(No symbol) [0x0x7ff79c328743]
+	(No symbol) [0x0x7ff79c2f14c1]
+	(No symbol) [0x0x7ff79c2f2253]
+	GetHandleVerifier [0x0x7ff79c7ba2ad+3004797]
+	GetHandleVerifier [0x0x7ff79c7b46fd+2981325]
+	GetHandleVerifier [0x0x7ff79c7d3350+3107360]
+	GetHandleVerifier [0x0x7ff79c50a9fe+188622]
+	GetHandleVerifier [0x0x7ff79c51228f+219487]
+	GetHandleVerifier [0x0x7ff79c4f8dc4+115860]
+	GetHandleVerifier [0x0x7ff79c4f8f79+116297]
+	GetHandleVerifier [0x0x7ff79c4df528+11256]
+	BaseThreadInitThunk [0x0x7ffb0d887374+20]
+	RtlUserThreadStart [0x0x7ffb0f53cc91+33]
+
+
+##########
+Erro ocorrido: '>=' not supported between instances of 'NoSuchDriverException' and 'int'
