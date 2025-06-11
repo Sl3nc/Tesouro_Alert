@@ -1,12 +1,12 @@
-from pathlib import Path
-from time import sleep
-from selenium import webdriver
-from selenium.webdriver.common.by import By
-from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.support.wait import WebDriverWait
+from selenium.common.exceptions import  SessionNotCreatedException
 from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.support.wait import WebDriverWait
+from selenium.webdriver.chrome.service import Service
+from DriverMaintenance import DriverMaintenance
+from selenium.webdriver.common.by import By
+from selenium import webdriver
 from itertools import chain
+from pathlib import Path
 
 class Browser:
     """
@@ -34,20 +34,25 @@ class Browser:
         :param options: Argumentos adicionais para o Chrome.
         :return: Instância do webdriver.Chrome.
         """
-        chrome_options = webdriver.ChromeOptions()
-        chrome_options.add_argument('--headless')
-        chrome_options.add_argument("--window-size=1920x1080")
+        try:
+            chrome_options = webdriver.ChromeOptions()
+            chrome_options.add_argument('--headless')
+            chrome_options.add_argument("--window-size=1920x1080")
 
-        chrome_service = Service(
-            executable_path=str(self.CHROME_DRIVER_PATH),
-        )
+            chrome_service = Service(
+                executable_path=str(self.CHROME_DRIVER_PATH),
+            )
 
-        browser = webdriver.Chrome(
-            service=chrome_service,
-            options=chrome_options
-        )
+            browser = webdriver.Chrome(
+                service=chrome_service,
+                options=chrome_options
+            )
 
-        # browser.set_window_position(-10000,0)
+            # browser.set_window_position(-10000,0)
+        # except SessionNotCreatedException:
+        except Exception:
+            DriverMaintenance().upgrade()
+            return self.make_chrome_browser()
         return browser
     
     def search(self) -> list[tuple]:
@@ -73,10 +78,10 @@ class Browser:
         
         table_rows2 = self.table_rows(2)
         # table_rows2 = self.card_rows(2)
+        self.driver.quit()
 
         table_rows = list(chain(table_rows1, table_rows2))
         
-        self.driver.quit()
         table_rows.sort(key= lambda x: x[0])
         return table_rows
     
@@ -128,20 +133,15 @@ class Browser:
         :return: Lista de tuplas com os dados da tabela.
         """
         temp_lines = []
-        tabela = self.driver.find_element(By.CSS_SELECTOR, self.SELECTOR_TABLE.format(table_index))
+        tabela = self.driver.find_element(
+            By.CSS_SELECTOR, self.SELECTOR_TABLE.format(table_index)
+        )
         linhas = tabela.find_elements(By.TAG_NAME, 'tbody')
 
-        sleep(2)
+        # sleep(2)
         for linha in linhas:
-            # tr = linha.find_element(By.TAG_NAME, 'tr')
-            # td = tr.find_elements(By.TAG_NAME, 'td')
-            # span = td[0].find_element(By.TAG_NAME, 'span')
-         
             info = linha.find_elements(By.TAG_NAME, 'span')
-            item = []
-            for data in info:
-                if data.text != '':
-                    item.append(data.text)
+            item = [data.text for data in info if data.text != '']
 
             #Apenas funciona com o segundo método chamado 
             if 'com juros semestrais' in item[1]\
@@ -151,6 +151,6 @@ class Browser:
             if len(item) == 5:
                 item.insert(3, '--')
                 
-            temp_lines.append((*[item_data for item_data in item],))
+            temp_lines.append((*item,))
             
         return temp_lines

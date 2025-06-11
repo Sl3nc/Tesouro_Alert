@@ -115,7 +115,7 @@ class Main:
 
 if __name__ == '__main__':
     current_time = datetime.now()
-    start_time = time(9, 30, 0, 0)
+    start_time = time(0, 30, 0, 0)
     stop_time = time(18, 0, 0, 0)
     main = Main()
 
